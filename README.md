@@ -6,7 +6,7 @@ A `System.CommandLine` implementation of the Windows App Community SDK.
 
 ```
 git clone --recurse https://github.com/WindowsAppCommunity/WindowsAppCommunity.CommandLine
-cd WindowsAppCommunity.CommandLine
+cd WindowsAppCommunity.CommandLine/src
 dotnet run
 ```
 
