@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\OwlCore.Template.csproj" />
+    <ProjectReference Include="..\src\WindowsAppCommunity.CommandLine.csproj" />
   </ItemGroup>
 
 </Project>
