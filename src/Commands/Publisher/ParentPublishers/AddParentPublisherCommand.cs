@@ -15,20 +15,23 @@ public class AddParentPublisherCommand : Command
     /// <summary>
     /// Initializes a new instance of the <see cref="AddParentPublisherCommand"/> class.
     /// </summary>
-    public AddParentPublisherCommand(WacsdkCommandConfig config, Option<string> repoOption, Option<string> idOption, Option<string> publisherIdOption)
+    public AddParentPublisherCommand(WacsdkCommandConfig config, Option<string> repoOption, Option<string> idOption, Option<string> publisherIdOption, Option<string> roleIdOption, Option<string> roleNameOption, Option<string> roleDescriptionOption)
         : base("add", "Adds a parent publisher to the Publisher.")
     {
         AddOption(repoOption);
         AddOption(idOption);
         AddOption(publisherIdOption);
+        AddOption(roleIdOption);
+        AddOption(roleNameOption);
+        AddOption(roleDescriptionOption);
 
-        this.SetHandler(InvokeAsync, repoOption, idOption, publisherIdOption);
+        this.SetHandler(InvokeAsync, repoOption, idOption, publisherIdOption, roleIdOption, roleNameOption, roleDescriptionOption);
         this.Config = config;
     }
 
     protected WacsdkCommandConfig Config { get; init; }
 
-    public async Task InvokeAsync(string repo, string id, string publisherId)
+    public async Task InvokeAsync(string repo, string id, string publisherId, string roleId, string roleName, string roleDescription)
     {
         Guard.IsNotNullOrWhiteSpace(publisherId);
 
@@ -40,11 +43,22 @@ public class AddParentPublisherCommand : Command
         Logger.LogInformation($"Got {nameof(publisher.Id)}: {publisher.Id}");
 
         Logger.LogInformation($"Getting parent publisher");
-        var parentPublisher = await GetPublisherByIdAsync(repo, publisherId, cancellationToken);
-        Logger.LogInformation($"Got {nameof(parentPublisher.Id)}: {parentPublisher.Id}");
+        var childPublisher = await GetPublisherByIdAsync(repo, publisherId, cancellationToken);
+        Logger.LogInformation($"Got {nameof(childPublisher.Id)}: {childPublisher.Id}");
+
+        var role = new Role
+        {
+            Id = roleId,
+            Name = roleName,
+            Description = roleDescription
+        };
+
+        var readOnlyPublisher = childPublisher is ModifiablePublisher modifiablePublisher ? modifiablePublisher.InnerPublisher : (ReadOnlyPublisher)childPublisher;
+
+        var publisherRole = new ReadOnlyPublisherRole { Role = role, InnerPublisher = readOnlyPublisher };
 
         Logger.LogInformation($"Adding parent publisher to collection");
-        await publisher.ParentPublishers.AddPublisherAsync(parentPublisher, cancellationToken);
+        await publisher.ParentPublishers.AddPublisherAsync(publisherRole, cancellationToken);
 
         Logger.LogInformation($"Publishing changes");
         await PublishAsync(publisher, cancellationToken);

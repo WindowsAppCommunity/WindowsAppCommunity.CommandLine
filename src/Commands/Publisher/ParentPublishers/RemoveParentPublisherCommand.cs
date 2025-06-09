@@ -40,7 +40,7 @@ public class RemoveParentPublisherCommand : Command
         Logger.LogInformation($"Got {nameof(publisher.Id)}: {publisher.Id}");
 
         Logger.LogInformation($"Getting parent publisher to remove");
-        var parentPublisher = await GetPublisherByIdAsync(repo, publisherId, cancellationToken);
+        var parentPublisher = await publisher.ParentPublishers.GetPublishersAsync(cancellationToken).FirstAsync(p => p.Id == publisherId, cancellationToken);
         Logger.LogInformation($"Got {nameof(parentPublisher.Id)}: {parentPublisher.Id}");
 
         Logger.LogInformation($"Removing parent publisher from collection");

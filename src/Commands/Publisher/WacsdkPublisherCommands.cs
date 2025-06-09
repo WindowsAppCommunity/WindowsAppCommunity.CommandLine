@@ -74,8 +74,8 @@ namespace WindowsAppCommunity.CommandLine.Publisher
 
             // Add publisher-specific collection commands
             AddCommand(new ProjectsCommand(config, repoOption, publisherIdOption, projectIdOption));
-            AddCommand(new ChildPublishersCommand(config, repoOption, parentPublisherIdOption, childPublisherIdOption));
-            AddCommand(new ParentPublishersCommand(config, repoOption, childPublisherIdOption, parentPublisherIdOption));
+            AddCommand(new ChildPublishersCommand(config, repoOption, parentPublisherIdOption, childPublisherIdOption, roleIdOption, roleNameOption, roleDescriptionOption));
+            AddCommand(new ParentPublishersCommand(config, repoOption, childPublisherIdOption, parentPublisherIdOption, roleIdOption, roleNameOption, roleDescriptionOption));
         }
     }
 }
