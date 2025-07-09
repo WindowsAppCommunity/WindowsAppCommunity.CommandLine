@@ -53,7 +53,7 @@ var kubo = new KuboBootstrapper(kuboRepoFolder.Path)
     GatewayUriMode = ConfigMode.OverwriteExisting,
     ApiUriMode = ConfigMode.OverwriteExisting,
     LaunchConflictMode = BootstrapLaunchConflictMode.Attach,
-    RoutingMode = DhtRoutingMode.None,
+    RoutingMode = DhtRoutingMode.Auto,
 };
 await kubo.StartAsync(cancellationToken);
 
