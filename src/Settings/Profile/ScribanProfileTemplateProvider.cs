@@ -13,12 +13,25 @@ namespace WindowsAppCommunity.CommandLine.Settings.Profile;
 public class ScribanProfileTemplateProvider<TEntity> : IProfileTemplateProvider<TEntity>
     where TEntity : IReadOnlyEntity
 {
+    /// <summary>
+    /// The name of the file to output to.
+    /// </summary>
     public required string OutputFileName { get; init; }
 
+    /// <summary>
+    /// The Scriban template to use.
+    /// </summary>
     public required Template Template { get; init; }
 
+    /// <summary>
+    /// The delegate to use to rename members made accessible from the template scripts.
+    /// </summary>
+    /// <remarks>
+    /// By default, member names are not renamed at all.
+    /// </remarks>
     public MemberRenamerDelegate MemberRenamer { get; init; } = DefaultMemberRenamer;
 
+    /// <inheritdoc/>
     public async Task ApplyTemplate(TEntity entity, IModifiableFolder outputFolder, CancellationToken token = default)
     {
         var renderResult = await Template.RenderAsync(entity, MemberRenamer);

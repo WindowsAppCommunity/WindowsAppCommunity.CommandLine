@@ -7,7 +7,7 @@ using WindowsAppCommunity.Sdk;
 namespace WindowsAppCommunity.CommandLine.Common.Profile;
 
 /// <summary>
-/// Wacsdk add connection command.
+/// Wacsdk update profile page command.
 /// </summary>
 public abstract class UpdateProfilePageCommand<TEntity> : Command
     where TEntity : IReadOnlyEntity
@@ -28,8 +28,12 @@ public abstract class UpdateProfilePageCommand<TEntity> : Command
 
     protected WacsdkCommandConfig Config { get; init; }
 
+    /// <summary>
+    /// The template to apply to the entity.
+    /// </summary>
     public IProfileTemplateProvider<TEntity> Template { get; init; }
 
+    /// <inheritdoc/>
     public async Task InvokeAsync(string repoId, string entityId)
     {
         var cancellationToken = Config.CancellationToken;
@@ -42,6 +46,7 @@ public abstract class UpdateProfilePageCommand<TEntity> : Command
         var thisRepoStorage = (IModifiableFolder)await Config.RepositoryStorage.CreateFolderAsync(repoId, overwrite: false);
         var thisEntityFolder = (IModifiableFolder)await thisRepoStorage.CreateFolderAsync(entityId);
         var outputFolder = (IModifiableFolder)await thisEntityFolder.CreateFolderAsync("profile");
+        Logger.LogInformation($"Generating profile page in {outputFolder.Id}");
 
         await Template.ApplyTemplate(entity, outputFolder, cancellationToken);
     }
