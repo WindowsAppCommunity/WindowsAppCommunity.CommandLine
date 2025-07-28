@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "WindowsAppCommunity.CommandLine": {
+      "commandName": "Project",
+      "commandLineArgs": "user page --user-id k51qzi5uqu5dl21mbcant1nn4i6bx5d6wfwk1zveoy91euyk5ybqn2ah5vnkbm"
+    }
+  }
+}
