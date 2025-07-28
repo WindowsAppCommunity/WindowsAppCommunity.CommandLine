@@ -1,6 +1,7 @@
 ﻿using OwlCore.Storage;
 using System.CommandLine;
 using WindowsAppCommunity.CommandLine.Common.Profile;
+using WindowsAppCommunity.CommandLine.Settings.Profile;
 using WindowsAppCommunity.Sdk;
 using WindowsAppCommunity.Sdk.Nomad;
 
@@ -29,5 +30,11 @@ public class UpdateProfilePageCommand : UpdateProfilePageCommand<IReadOnlyUser>
         var user = await repositoryContainer.UserRepository.GetAsync(userId, cancellationToken);
 
         return user;
+    }
+
+    /// <inheritdoc/>
+    public override async Task<IProfileTemplateProvider<IReadOnlyUser>> CreateTemplateProviderAsync(IFile templateFile, string outputFileName, CancellationToken cancellationToken)
+    {
+        return await ScribanUserProfileTemplateProvider.CreateFromFileAsync(templateFile, outputFileName, cancellationToken);
     }
 }

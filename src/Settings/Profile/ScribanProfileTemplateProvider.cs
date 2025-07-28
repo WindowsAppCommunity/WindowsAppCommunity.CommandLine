@@ -35,7 +35,8 @@ public class ScribanProfileTemplateProvider<TEntity> : IProfileTemplateProvider<
     /// <inheritdoc/>
     public async Task ApplyTemplate(TEntity entity, IModifiableFolder outputFolder, CancellationToken token = default)
     {
-        var renderResult = await Template.RenderAsync(entity, MemberRenamer);
+        var model = await GetModelAsync(entity, token);
+        var renderResult = await Template.RenderAsync(model, MemberRenamer);
 
         var outputFile = await outputFolder.CreateFileAsync(OutputFileName, true, token);
 
@@ -43,6 +44,13 @@ public class ScribanProfileTemplateProvider<TEntity> : IProfileTemplateProvider<
         using var textWriter = new StreamWriter(outputStream);
         await textWriter.WriteAsync(renderResult);
     }
+
+    /// <summary>
+    /// Gets the model passed to the Scriban template for rendering.
+    /// </summary>
+    /// <param name="entity">The entity to generate a model from.</param>
+    /// <returns>A model suitable for rendering templates.</returns>
+    protected virtual async Task<object> GetModelAsync(TEntity entity, CancellationToken token) => entity;
 
     /// <summary>
     /// Creates a template provider from a file containing a Scriban template.
@@ -67,7 +75,7 @@ public class ScribanProfileTemplateProvider<TEntity> : IProfileTemplateProvider<
         return await CreateFromFileAsync(templateFile, Encoding.UTF8, outputFileName, token);
     }
 
-    private static async Task<Template> ParseTemplateFromFileAsync(IFile templateFile, Encoding encoding, CancellationToken token)
+    protected static async Task<Template> ParseTemplateFromFileAsync(IFile templateFile, Encoding encoding, CancellationToken token)
     {
         var templateText = await templateFile.ReadTextAsync(encoding, token);
         return Template.Parse(templateText);

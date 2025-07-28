@@ -46,9 +46,15 @@ public abstract class UpdateProfilePageCommand<TEntity> : Command
         Logger.LogInformation($"Generating profile page in {outputFolder.Id}");
 
         var templateFile = new SystemFile(templatePath);
-        var template = await ScribanProfileTemplateProvider<TEntity>.CreateFromFileAsync(templateFile, outputFileName, cancellationToken);
+        var template = await CreateTemplateProviderAsync(templateFile, outputFileName, cancellationToken);
         await template.ApplyTemplate(entity, outputFolder, cancellationToken);
     }
 
     public abstract Task<TEntity> GetEntityAsync(string repoId, string entityId, CancellationToken cancellationToken);
+
+    public virtual async Task<IProfileTemplateProvider<TEntity>> CreateTemplateProviderAsync(IFile templateFile, string outputFileName, CancellationToken cancellationToken)
+    {
+        var template = await ScribanProfileTemplateProvider<TEntity>.CreateFromFileAsync(templateFile, outputFileName, cancellationToken);
+        return template;
+    }
 }
