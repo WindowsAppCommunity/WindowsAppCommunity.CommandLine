@@ -67,32 +67,6 @@ public class ScribanProfileTemplateProvider<TEntity> : IProfileTemplateProvider<
         return await CreateFromFileAsync(templateFile, Encoding.UTF8, outputFileName, token);
     }
 
-    /// <summary>
-    /// Creates a template provider from a file containing a Scriban template.
-    /// </summary>
-    /// <param name="templateFile">The file with the template.</param>
-    /// <param name="encoding">The text encoding of the file.</param>
-    /// <param name="outputFileName">The name of the file to output to.</param>
-    /// <returns>A template provider that will read from the template file when applied..</returns>
-    public static FileProfileTemplateProvider<TEntity> CreateFromFile(IFile templateFile, Encoding encoding, string outputFileName)
-    {
-        return new FileProfileTemplateProvider<TEntity>(templateFile, async (f, t) =>
-        {
-            var template = await ParseTemplateFromFileAsync(f, encoding, t);
-            return new ScribanProfileTemplateProvider<TEntity>
-            {
-                OutputFileName = outputFileName,
-                Template = template,
-            };
-        });
-    }
-
-    /// <inheritdoc cref="CreateFromFile(IFile, Encoding, string)"/>
-    public static FileProfileTemplateProvider<TEntity> CreateFromFile(IFile templateFile, string outputFileName)
-    {
-        return CreateFromFile(templateFile, Encoding.UTF8, outputFileName);
-    }
-
     private static async Task<Template> ParseTemplateFromFileAsync(IFile templateFile, Encoding encoding, CancellationToken token)
     {
         var templateText = await templateFile.ReadTextAsync(encoding, token);

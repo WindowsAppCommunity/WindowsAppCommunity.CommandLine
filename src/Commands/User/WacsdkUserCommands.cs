@@ -10,8 +10,6 @@ using WindowsAppCommunity.CommandLine.User.Links;
 using WindowsAppCommunity.CommandLine.User.PublisherRoles;
 using WindowsAppCommunity.CommandLine.User.ProjectRoles;
 using WindowsAppCommunity.CommandLine.Commands.User.Profile;
-using WindowsAppCommunity.CommandLine.Settings.Profile;
-using OwlCore.Storage.System.IO;
 
 namespace WindowsAppCommunity.CommandLine.User;
 
