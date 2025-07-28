@@ -9,6 +9,8 @@ using WindowsAppCommunity.CommandLine.User.Images;
 using WindowsAppCommunity.CommandLine.User.Links;
 using WindowsAppCommunity.CommandLine.User.PublisherRoles;
 using WindowsAppCommunity.CommandLine.User.ProjectRoles;
+using WindowsAppCommunity.CommandLine.Commands.User.Profile;
+using WindowsAppCommunity.CommandLine.Settings.Profile;
 
 namespace WindowsAppCommunity.CommandLine.User;
 
@@ -65,5 +67,13 @@ public class WacsdkUserCommands : Command
         AddCommand(new LinksCommand(config, repoOption, userIdOption, linkIdOption, nameOption, urlOption, descriptionOption));
         AddCommand(new PublisherRolesCommand(config, repoOption, userIdOption, publisherIdOption, publisherRoleIdOption, roleIdOption, roleNameOption, roleDescriptionOption));
         AddCommand(new ProjectRolesCommand(config, repoOption, userIdOption, projectIdOption, projectRoleIdOption, roleIdOption, roleNameOption, roleDescriptionOption));
+
+        // Experimental commands
+        var pageTemplate = new ScribanProfileTemplateProvider<Sdk.IReadOnlyEntity>
+        {
+            OutputFileName = "profile.html",
+            Template = Scriban.Template.Parse(@"<h1>{{Name}}</h1><p>{{Description}}</p>")
+        };
+        AddCommand(new UpdateProfilePageCommand(config, pageTemplate, repoOption, userIdOption));
     }
 }
