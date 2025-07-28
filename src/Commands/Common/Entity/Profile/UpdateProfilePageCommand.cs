@@ -1,5 +1,6 @@
 ﻿using OwlCore.Diagnostics;
 using OwlCore.Storage;
+using OwlCore.Storage.System.IO;
 using System.CommandLine;
 using WindowsAppCommunity.CommandLine.Settings.Profile;
 using WindowsAppCommunity.Sdk;
@@ -15,26 +16,22 @@ public abstract class UpdateProfilePageCommand<TEntity> : Command
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateProfilePageCommand{TEntity}"/> class.
     /// </summary>
-    public UpdateProfilePageCommand(WacsdkCommandConfig config, IProfileTemplateProvider<TEntity> template, string entityType, Option<string> repoOption, Option<string> idOption)
+    public UpdateProfilePageCommand(WacsdkCommandConfig config, string entityType, Option<string> repoOption, Option<string> idOption, Option<string> templatePathOption, Option<string> outputFileNameOption)
         : base("page", $"Regenerates the static profile page for {entityType}.")
     {
         AddOption(repoOption);
         AddOption(idOption);
+        AddOption(templatePathOption);
+        AddOption(outputFileNameOption);
 
-        this.SetHandler(InvokeAsync, repoOption, idOption);
+        this.SetHandler(InvokeAsync, repoOption, idOption, templatePathOption, outputFileNameOption);
         this.Config = config;
-        this.Template = template;
     }
 
     protected WacsdkCommandConfig Config { get; init; }
 
-    /// <summary>
-    /// The template to apply to the entity.
-    /// </summary>
-    public IProfileTemplateProvider<TEntity> Template { get; init; }
-
     /// <inheritdoc/>
-    public async Task InvokeAsync(string repoId, string entityId)
+    public async Task InvokeAsync(string repoId, string entityId, string templatePath, string outputFileName)
     {
         var cancellationToken = Config.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
@@ -48,7 +45,9 @@ public abstract class UpdateProfilePageCommand<TEntity> : Command
         var outputFolder = (IModifiableFolder)await thisEntityFolder.CreateFolderAsync("profile");
         Logger.LogInformation($"Generating profile page in {outputFolder.Id}");
 
-        await Template.ApplyTemplate(entity, outputFolder, cancellationToken);
+        var templateFile = new SystemFile(templatePath);
+        var template = await ScribanProfileTemplateProvider<TEntity>.CreateFromFileAsync(templateFile, outputFileName, cancellationToken);
+        await template.ApplyTemplate(entity, outputFolder, cancellationToken);
     }
 
     public abstract Task<TEntity> GetEntityAsync(string repoId, string entityId, CancellationToken cancellationToken);

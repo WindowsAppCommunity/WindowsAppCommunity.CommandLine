@@ -11,6 +11,7 @@ using WindowsAppCommunity.CommandLine.User.PublisherRoles;
 using WindowsAppCommunity.CommandLine.User.ProjectRoles;
 using WindowsAppCommunity.CommandLine.Commands.User.Profile;
 using WindowsAppCommunity.CommandLine.Settings.Profile;
+using OwlCore.Storage.System.IO;
 
 namespace WindowsAppCommunity.CommandLine.User;
 
@@ -46,8 +47,9 @@ public class WacsdkUserCommands : Command
         var roleIdOption = new Option<string>("--role-id", "The ID of the role.");
         var roleNameOption = new Option<string>("--role-name", "The name of the role.");
         var roleDescriptionOption = new Option<string>("--role-description", "The description of the role.");
-
-
+        var templatePathOption = new Option<string>("--template-path", "The path to the template file.") { IsRequired = true };
+        var outputFileNameOption = new Option<string>("--output-name", () => "index.html", "The name of the output file.");
+        
         // Add high-level user operations
         AddCommand(new WacsdkUserGetCommand(config, repoOption));
         AddCommand(new WacsdkUserCreateCommand(config, repoOption, nameOption, descriptionOption));
@@ -69,11 +71,6 @@ public class WacsdkUserCommands : Command
         AddCommand(new ProjectRolesCommand(config, repoOption, userIdOption, projectIdOption, projectRoleIdOption, roleIdOption, roleNameOption, roleDescriptionOption));
 
         // Experimental commands
-        var pageTemplate = new ScribanProfileTemplateProvider<Sdk.IReadOnlyEntity>
-        {
-            OutputFileName = "profile.html",
-            Template = Scriban.Template.Parse(@"<h1>{{Name}}</h1><p>{{Description}}</p>")
-        };
-        AddCommand(new UpdateProfilePageCommand(config, pageTemplate, repoOption, userIdOption));
+        AddCommand(new UpdateProfilePageCommand(config, repoOption, userIdOption, templatePathOption, outputFileNameOption));
     }
 }

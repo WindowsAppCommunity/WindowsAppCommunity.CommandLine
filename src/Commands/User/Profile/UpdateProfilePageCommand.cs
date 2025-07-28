@@ -1,7 +1,6 @@
 ﻿using OwlCore.Storage;
 using System.CommandLine;
 using WindowsAppCommunity.CommandLine.Common.Profile;
-using WindowsAppCommunity.CommandLine.Settings.Profile;
 using WindowsAppCommunity.Sdk;
 using WindowsAppCommunity.Sdk.Nomad;
 
@@ -12,9 +11,8 @@ namespace WindowsAppCommunity.CommandLine.Commands.User.Profile;
 /// </summary>
 public class UpdateProfilePageCommand : UpdateProfilePageCommand<IReadOnlyUser>
 {
-    /// <inheritdoc/>
-    public UpdateProfilePageCommand(WacsdkCommandConfig config, IProfileTemplateProvider<IReadOnlyUser> template, Option<string> repoOption, Option<string> idOption)
-        : base(config, template, "User", repoOption, idOption)
+    public UpdateProfilePageCommand(WacsdkCommandConfig config, Option<string> repoOption, Option<string> idOption, Option<string> templatePathOption, Option<string> outputFileNameOption)
+        : base(config, "User", repoOption, idOption, templatePathOption, outputFileNameOption)
     {
     }
 
