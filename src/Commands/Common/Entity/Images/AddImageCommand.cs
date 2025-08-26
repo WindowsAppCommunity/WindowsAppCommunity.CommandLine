@@ -57,7 +57,7 @@ public abstract class AddImageCommand : Command
         Logger.LogInformation($"  {nameof(imageFile.GetType)}: {imageFile.GetType()}");
 
         await entity.AddImageAsync(imageFile, imageId ?? imageFile.Id, imageName, cancellationToken);
-        var addedImage = await entity.GetImageFilesAsync(cancellationToken).FirstAsync(x=> x.Id == imageId || x.Name == imageName, cancellationToken: cancellationToken);
+        var addedImage = await entity.GetImageFilesAsync(cancellationToken).FirstAsync(x=> x.Id == (imageId ?? imageFile.Id) || x.Name == imageName, cancellationToken: cancellationToken);
         Logger.LogInformation($"Added file:");
         Logger.LogInformation($"- {nameof(addedImage.Id)}: {addedImage.Id}");
         Logger.LogInformation($"  {nameof(addedImage.Name)}: {addedImage.Name}");
