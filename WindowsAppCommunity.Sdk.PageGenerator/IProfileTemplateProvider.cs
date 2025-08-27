@@ -1,7 +1,6 @@
 ﻿using OwlCore.Storage;
-using WindowsAppCommunity.Sdk;
 
-namespace WindowsAppCommunity.CommandLine.Settings.Profile;
+namespace WindowsAppCommunity.Sdk.PageGenerator.Templating;
 
 /// <summary>
 /// An interface for generating multiple static content to from an <see cref="IReadOnlyEntity"/>.

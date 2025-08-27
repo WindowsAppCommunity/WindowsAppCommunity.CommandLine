@@ -1,8 +1,7 @@
 ﻿using CommunityToolkit.Diagnostics;
 using OwlCore.Storage;
-using WindowsAppCommunity.Sdk;
 
-namespace WindowsAppCommunity.CommandLine.Settings.Profile;
+namespace WindowsAppCommunity.Sdk.PageGenerator.Templating;
 
 public static class ProfileTemplateProvider
 {

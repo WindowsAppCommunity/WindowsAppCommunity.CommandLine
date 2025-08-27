@@ -1,11 +1,10 @@
-﻿using OwlCore.Storage;
+﻿using System.Reflection;
+using System.Text;
+using OwlCore.Storage;
 using Scriban;
 using Scriban.Runtime;
-using System.Reflection;
-using System.Text;
-using WindowsAppCommunity.Sdk;
 
-namespace WindowsAppCommunity.CommandLine.Settings.Profile;
+namespace WindowsAppCommunity.Sdk.PageGenerator.Templating;
 
 /// <summary>
 /// An interface for generating content from an <see cref="IReadOnlyEntity"/> using a
@@ -40,8 +39,8 @@ public class ScribanProfileTemplateProvider<TEntity> : IProfileTemplateProvider<
 
         var outputFile = await outputFolder.CreateFileAsync(OutputFileName, true, token);
 
-        using var outputStream = await outputFile.OpenWriteAsync(token);
-        using var textWriter = new StreamWriter(outputStream);
+        await using var outputStream = await outputFile.OpenWriteAsync(token);
+        await using var textWriter = new StreamWriter(outputStream);
         await textWriter.WriteAsync(renderResult);
     }
 

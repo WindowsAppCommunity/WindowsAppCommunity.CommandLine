@@ -1,8 +1,7 @@
 ﻿using CommunityToolkit.Diagnostics;
 using OwlCore.Storage;
-using WindowsAppCommunity.Sdk;
 
-namespace WindowsAppCommunity.CommandLine.Settings.Profile;
+namespace WindowsAppCommunity.Sdk.PageGenerator.Templating;
 
 /// <summary>
 /// Applies multiple templates to the same entity and outputs the results to the same folder.

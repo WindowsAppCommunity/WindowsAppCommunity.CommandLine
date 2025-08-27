@@ -1,7 +1,7 @@
 ﻿using OwlCore.Storage;
 using System.CommandLine;
 using WindowsAppCommunity.CommandLine.Common.Profile;
-using WindowsAppCommunity.CommandLine.Settings.Profile;
+using WindowsAppCommunity.Sdk.PageGenerator.Templating;
 using WindowsAppCommunity.Sdk;
 using WindowsAppCommunity.Sdk.Nomad;
 

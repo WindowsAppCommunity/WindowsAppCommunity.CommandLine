@@ -1,25 +1,15 @@
-﻿using OwlCore.Storage;
-using System.Text;
-using WindowsAppCommunity.Sdk;
+﻿using System.Text;
+using OwlCore.Storage;
+using WindowsAppCommunity.Sdk.PageGenerator.Models;
 
-namespace WindowsAppCommunity.CommandLine.Settings.Profile;
+namespace WindowsAppCommunity.Sdk.PageGenerator.Templating;
 
 public class ScribanUserProfileTemplateProvider : ScribanProfileTemplateProvider<IReadOnlyUser>
 {
     /// <inheritdoc/>
     protected override async Task<object> GetModelAsync(IReadOnlyUser entity, CancellationToken token)
     {
-        return new
-        {
-            User = entity,
-
-            Connections = await entity.GetConnectionsAsync(token).ToListAsync(token),
-            Projects = await entity.GetProjectsAsync(token).ToListAsync(token),
-            Publishers = await entity.GetPublishersAsync(token).ToListAsync(token),
-
-            // TODO: How can an HTML template show images from arbitrary files?
-            //ImageFiles = await entity.GetImageFilesAsync(token).ToListAsync(token),
-        };
+        return await User.CreateAsync(entity, token);
     }
 
     /// <summary>
@@ -32,7 +22,7 @@ public class ScribanUserProfileTemplateProvider : ScribanProfileTemplateProvider
     /// <returns>A task that represents the operation.</returns>
     public static async Task<ScribanUserProfileTemplateProvider> CreateFromFileAsync(IFile templateFile, Encoding encoding, string outputFileName, CancellationToken token = default)
     {
-        return new()
+        return new ScribanUserProfileTemplateProvider
         {
             OutputFileName = outputFileName,
             Template = await ParseTemplateFromFileAsync(templateFile, encoding, token),

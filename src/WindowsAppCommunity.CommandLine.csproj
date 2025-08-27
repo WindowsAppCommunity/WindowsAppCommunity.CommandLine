@@ -58,5 +58,6 @@ Initial release of WindowsAppCommunity.CommandLine.
 
 	<ItemGroup>
 	  <ProjectReference Include="..\sdk\src\WindowsAppCommunity.Sdk.csproj" />
+	  <ProjectReference Include="..\WindowsAppCommunity.Sdk.PageGenerator\WindowsAppCommunity.Sdk.PageGenerator.csproj" />
 	</ItemGroup>
 </Project>

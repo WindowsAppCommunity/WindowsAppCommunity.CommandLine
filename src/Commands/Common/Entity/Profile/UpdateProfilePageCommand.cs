@@ -2,7 +2,7 @@
 using OwlCore.Storage;
 using OwlCore.Storage.System.IO;
 using System.CommandLine;
-using WindowsAppCommunity.CommandLine.Settings.Profile;
+using WindowsAppCommunity.Sdk.PageGenerator.Templating;
 using WindowsAppCommunity.Sdk;
 
 namespace WindowsAppCommunity.CommandLine.Common.Profile;
@@ -40,9 +40,9 @@ public abstract class UpdateProfilePageCommand<TEntity> : Command
         var entity = await GetEntityAsync(repoId, entityId, cancellationToken);
         Logger.LogInformation($"Got {nameof(entity.Id)}: {entity.Id}");
 
-        var thisRepoStorage = (IModifiableFolder)await Config.RepositoryStorage.CreateFolderAsync(repoId, overwrite: false);
-        var thisEntityFolder = (IModifiableFolder)await thisRepoStorage.CreateFolderAsync(entityId);
-        var outputFolder = (IModifiableFolder)await thisEntityFolder.CreateFolderAsync("profile");
+        var thisRepoStorage = (IModifiableFolder)await Config.RepositoryStorage.CreateFolderAsync(repoId, overwrite: false, cancellationToken: cancellationToken);
+        var thisEntityFolder = (IModifiableFolder)await thisRepoStorage.CreateFolderAsync(entityId, cancellationToken: cancellationToken);
+        var outputFolder = (IModifiableFolder)await thisEntityFolder.CreateFolderAsync("profile", cancellationToken: cancellationToken);
         Logger.LogInformation($"Generating profile page in {outputFolder.Id}");
 
         var templateFile = new SystemFile(templatePath);
