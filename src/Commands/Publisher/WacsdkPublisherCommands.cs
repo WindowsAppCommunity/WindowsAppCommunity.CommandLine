@@ -57,6 +57,7 @@ namespace WindowsAppCommunity.CommandLine.Publisher
             AddCommand(new WacsdkPublisherGetCommand(config, repoOption));
             AddCommand(new WacsdkPublisherCreateCommand(config, repoOption));
             AddCommand(new WacsdkPublisherListCommand(config, repoOption));
+            AddCommand(new WacsdkPublisherDeleteCommand(config, repoOption));
 
             // Add entity property management commands
             AddCommand(new EntityNameCommand(config, repoOption, publisherIdOption, valueOption));
@@ -64,7 +65,7 @@ namespace WindowsAppCommunity.CommandLine.Publisher
             AddCommand(new EntityExtendedDescription(config, repoOption, publisherIdOption, valueOption));
             AddCommand(new EntityIsUnlistedCommand(config, repoOption, publisherIdOption, boolValueOption));
             AddCommand(new EntityForgetMeCommand(config, repoOption, publisherIdOption, nullableBoolValueOption));
-            
+
             // Add collection management commands
             AddCommand(new ConnectionsCommand(config, repoOption, publisherIdOption, connectionIdOption, connectionValueOption));
             AddCommand(new EntityImagesCommand(config, repoOption, publisherIdOption, imagePathOption, requiredImageIdOption, optionalImageIdOption, imageNameOption));
