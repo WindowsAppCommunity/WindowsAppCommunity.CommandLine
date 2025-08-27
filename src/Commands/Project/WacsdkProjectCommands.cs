@@ -53,6 +53,7 @@ public class WacsdkProjectCommands : Command
         AddCommand(new WacsdkProjectGetCommand(config, repoOption));
         AddCommand(new WacsdkProjectCreateCommand(config, repoOption, nameOption, descriptionOption));
         AddCommand(new WacsdkProjectListCommand(config, repoOption));
+        AddCommand(new WacsdkProjectDeleteCommand(config, repoOption));
 
         // Add entity property management commands
         AddCommand(new EntityNameCommand(config, repoOption, projectIdOption, valueOption));
@@ -60,14 +61,14 @@ public class WacsdkProjectCommands : Command
         AddCommand(new EntityExtendedDescription(config, repoOption, projectIdOption, valueOption));
         AddCommand(new EntityIsUnlistedCommand(config, repoOption, projectIdOption, boolValueOption));
         AddCommand(new EntityForgetMeCommand(config, repoOption, projectIdOption, nullableBoolValueOption));
-        
+
         // Add collection management commands
         AddCommand(new ConnectionsCommand(config, repoOption, projectIdOption, connectionIdOption, connectionValueOption));
         AddCommand(new EntityImagesCommand(config, repoOption, projectIdOption, imagePathOption, optionalImageIdOption, requiredImageIdOption, imageNameOption));
         AddCommand(new LinksCommand(config, repoOption, projectIdOption, linkIdOption, nameOption, urlOption, descriptionOption));
         AddCommand(new UserRolesCommand(config, repoOption, projectIdOption, userIdOption, roleIdOption, roleNameOption, roleDescriptionOption));
         AddCommand(new AccentColorCommand(config, repoOption, projectIdOption, colorOption));
-        
+
         // Add project-specific commands
         AddCommand(new CategoryCommand(config, repoOption, projectIdOption, categoryOption));
         AddCommand(new FeaturesCommand(config, repoOption, projectIdOption, featureOption));

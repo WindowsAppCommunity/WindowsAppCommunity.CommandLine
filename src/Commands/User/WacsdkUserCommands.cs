@@ -44,20 +44,21 @@ public class WacsdkUserCommands : Command
         var roleIdOption = new Option<string>("--role-id", "The ID of the role.");
         var roleNameOption = new Option<string>("--role-name", "The name of the role.");
         var roleDescriptionOption = new Option<string>("--role-description", "The description of the role.");
-        
-        
+
+
         // Add high-level user operations
         AddCommand(new WacsdkUserGetCommand(config, repoOption));
         AddCommand(new WacsdkUserCreateCommand(config, repoOption, nameOption, descriptionOption));
-        AddCommand(new WacsdkUserListCommand(config, repoOption)); 
-        
+        AddCommand(new WacsdkUserListCommand(config, repoOption));
+        AddCommand(new WacsdkUserDeleteCommand(config, repoOption));
+
         // Add entity property management commands
         AddCommand(new EntityNameCommand(config, repoOption, userIdOption, valueOption));
         AddCommand(new EntityDescription(config, repoOption, userIdOption, valueOption));
         AddCommand(new EntityExtendedDescription(config, repoOption, userIdOption, valueOption));
         AddCommand(new EntityIsUnlistedCommand(config, repoOption, userIdOption, boolValueOption));
         AddCommand(new EntityForgetMeCommand(config, repoOption, userIdOption, nullableBoolValueOption));
-        
+
         // Add collection management commands
         AddCommand(new ConnectionsCommand(config, repoOption, userIdOption, connectionIdOption, connectionValueOption));
         AddCommand(new EntityImagesCommand(config, repoOption, userIdOption, imagePathOption, imageNameOption, optionalImageIdOption, requiredImageIdOption));
