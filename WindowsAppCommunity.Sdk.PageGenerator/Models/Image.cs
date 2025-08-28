@@ -15,7 +15,7 @@ public record Image(string Url, IFile File)
             // Generate gateway link for IPFS items
             // TODO: Use WinAppComm gateway (or no gateway at all)
             var cid = await ipfsFile.GetCidAsync(token);
-            url = $"http://localhost:8025/ipfs/{cid}";
+            url = $"https://ipfs.io/ipfs/{cid}";
         }
         else if (file is HttpFile httpFile)
         {
