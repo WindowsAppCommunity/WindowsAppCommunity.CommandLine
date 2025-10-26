@@ -55,7 +55,7 @@ namespace WindowsAppCommunity.Blog.PostPage
         /// <summary>
         /// Recursively copy all assets from template folder to output folder.
         /// Excludes template file itself to avoid duplication.
-        /// Preserves folder structure using OwlCore.Storage recursive operations.
+        /// Preserves folder structure using relative path resolution.
         /// </summary>
         /// <param name="templateFolder">Source template folder</param>
         /// <param name="outputFolder">Destination output folder</param>
@@ -71,18 +71,26 @@ namespace WindowsAppCommunity.Blog.PostPage
             // Gap #7 resolution: Filter files and exclude template file by ID comparison
             await foreach (var item in recursiveFolder.GetItemsAsync(StorableType.File))
             {
-                if (item is not IFile file)
+                if (item is not IChildFile file)
                     continue;
 
                 // Exclude the template file itself
                 if (file.Id == templateFile.Id)
                     continue;
 
-                // Copy asset to output folder (overwrite silently per Gap #6)
-                if (outputFolder is IModifiableFolder modifiableOutput)
-                {
-                    await modifiableOutput.CreateCopyOfAsync(file, overwrite: true);
-                }
+                // Get relative path from template folder to file (preserves folder structure)
+                var relativePath = await templateFolder.GetRelativePathToAsync(file);
+                
+                // Create file at relative path in output folder (creates necessary parent folders)
+                var targetStorable = await outputFolder.CreateByRelativePathAsync(relativePath, StorableType.File, overwrite: true);
+                
+                if (targetStorable is not IFile targetFile)
+                    throw new InvalidOperationException($"Created item at '{relativePath}' is not a file.");
+                
+                // Copy file content
+                using var sourceStream = await file.OpenReadAsync();
+                using var targetStream = await targetFile.OpenStreamAsync(FileAccess.Write);
+                await sourceStream.CopyToAsync(targetStream);
             }
         }
 
