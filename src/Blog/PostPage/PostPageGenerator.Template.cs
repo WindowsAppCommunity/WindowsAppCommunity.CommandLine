@@ -82,15 +82,15 @@ namespace WindowsAppCommunity.Blog.PostPage
                 var relativePath = await templateFolder.GetRelativePathToAsync(file);
                 
                 // Create file at relative path in output folder (creates necessary parent folders)
-                var targetStorable = await outputFolder.CreateByRelativePathAsync(relativePath, StorableType.File, overwrite: true);
-                
+                var targetStorable = await outputFolder.CreateByRelativePathAsync(relativePath, StorableType.File);
                 if (targetStorable is not IFile targetFile)
                     throw new InvalidOperationException($"Created item at '{relativePath}' is not a file.");
                 
                 // Copy file content
                 using var sourceStream = await file.OpenReadAsync();
-                using var targetStream = await targetFile.OpenStreamAsync(FileAccess.Write);
-                await sourceStream.CopyToAsync(targetStream);
+                using var destinationStream = await targetFile.OpenWriteAsync();
+                await sourceStream.CopyToAsync(destinationStream);
+                await destinationStream.FlushAsync();
             }
         }
 

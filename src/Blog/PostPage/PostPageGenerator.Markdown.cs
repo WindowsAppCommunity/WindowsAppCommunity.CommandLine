@@ -74,6 +74,7 @@ namespace WindowsAppCommunity.Blog.PostPage
             // Gap #1 resolution: Use Markdig Advanced Extensions pipeline
             var pipeline = new MarkdownPipelineBuilder()
                 .UseAdvancedExtensions()
+                .UseSoftlineBreakAsHardlineBreak()
                 .Build();
 
             return Markdown.ToHtml(markdown, pipeline);
