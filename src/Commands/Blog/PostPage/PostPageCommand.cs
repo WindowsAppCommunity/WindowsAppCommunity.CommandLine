@@ -94,13 +94,45 @@ namespace WindowsAppCommunity.CommandLine.Blog.PostPage
             // 3. Resolve output folder (SystemFolder throws if doesn't exist)
             IModifiableFolder outputFolder = new SystemFolder(outputPath);
 
-            // 4. Create generator instance
-            var generator = new PostPageGenerator();
+            // 4. Create virtual PostPageFolder (lazy generation - no I/O during construction)
+            var postPageFolder = new PostPageFolder(markdownFile, templateSource, templateFileName);
 
-            // 5. Invoke generator (exceptions bubble to System.CommandLine framework)
-            await generator.GenerateAsync(markdownFile, templateSource, outputFolder, templateFileName);
+            // 5. Create output folder for this page
+            var pageOutputFolder = await outputFolder.CreateFolderAsync(postPageFolder.Name, overwrite: true);
 
-            // 6. Report success
+            // 6. Materialize virtual structure by recursively copying all files
+            var recursiveFolder = new DepthFirstRecursiveFolder(postPageFolder);
+            await foreach (var item in recursiveFolder.GetItemsAsync(StorableType.File))
+            {
+                if (item is not IChildFile file)
+                    continue;
+
+                // Get relative path from appropriate root based on file type
+                string relativePath;
+                if (file is IndexHtmlFile)
+                {
+                    // IndexHtmlFile is virtual, use simple name-based path
+                    relativePath = $"/{file.Name}";
+                }
+                else if (templateSource is IFolder templateFolder)
+                {
+                    // Asset files from template folder - get path relative to template root
+                    relativePath = await templateFolder.GetRelativePathToAsync(file);
+                }
+                else
+                {
+                    // Template is file, no assets exist - skip
+                    continue;
+                }
+                
+                // Create containing folder for this file (or open if exists)
+                var containingFolder = await pageOutputFolder.CreateFoldersAlongRelativePathAsync(relativePath, overwrite: false).LastAsync();
+
+                // Copy file using ICreateCopyOf fastpath
+                await ((IModifiableFolder)containingFolder).CreateCopyOfAsync(file, overwrite: true);
+            }
+
+            // 7. Report success
             var outputFolderName = Path.GetFileNameWithoutExtension(markdownFile.Name);
             Console.WriteLine($"Generated: {Path.Combine(outputPath, outputFolderName, "index.html")}");
 
