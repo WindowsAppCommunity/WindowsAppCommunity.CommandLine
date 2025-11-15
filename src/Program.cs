@@ -1,4 +1,4 @@
-﻿using OwlCore.Diagnostics;
+using OwlCore.Diagnostics;
 using WindowsAppCommunity.CommandLine;
 using System.CommandLine;
 using OwlCore.Nomad.Kubo;
@@ -8,6 +8,7 @@ using WindowsAppCommunity.CommandLine.Repo;
 using WindowsAppCommunity.CommandLine.User;
 using WindowsAppCommunity.CommandLine.Project;
 using WindowsAppCommunity.CommandLine.Publisher;
+using WindowsAppCommunity.CommandLine.Blog;
 
 // Logging
 var startTime = DateTime.Now;
@@ -85,5 +86,6 @@ var repoOption = new Option<string>(name: "--repo-id", () => "default", descript
 rootCommand.AddCommand(new WacsdkUserCommands(config, repoOption));
 rootCommand.AddCommand(new WacsdkProjectCommands(config, repoOption));
 rootCommand.AddCommand(new WacsdkPublisherCommands(config, repoOption));
+rootCommand.AddCommand(new WacsdkBlogCommands());
 
 await rootCommand.InvokeAsync(args);

@@ -49,10 +49,14 @@ Initial release of WindowsAppCommunity.CommandLine.
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Markdig" Version="0.43.0" />
 		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.2" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+		<PackageReference Include="Scriban" Version="6.4.0" />
 		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
 		<PackageReference Include="System.Linq.Async" Version="6.0.1" />
+		<PackageReference Include="YamlDotNet" Version="16.3.0" />
+		<PackageReference Include="OwlCore.Storage" Version="0.14.0" />
 	</ItemGroup>
 
 	<ItemGroup>
