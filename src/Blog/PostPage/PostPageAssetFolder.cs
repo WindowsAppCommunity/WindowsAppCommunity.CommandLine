@@ -53,8 +53,6 @@ namespace WindowsAppCommunity.Blog.PostPage
             StorableType type = StorableType.All,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            OwlCore.Diagnostics.Logger.LogInformation($"PostPageAssetFolder.GetItemsAsync starting for: {_wrappedFolder.Id}");
-            
             // Enumerate wrapped folder items
             await foreach (var item in _wrappedFolder.GetItemsAsync(type, cancellationToken))
             {
@@ -77,8 +75,6 @@ namespace WindowsAppCommunity.Blog.PostPage
                     yield return file;
                 }
             }
-            
-            OwlCore.Diagnostics.Logger.LogInformation($"PostPageAssetFolder.GetItemsAsync complete for: {_wrappedFolder.Id}");
         }
     }
 }

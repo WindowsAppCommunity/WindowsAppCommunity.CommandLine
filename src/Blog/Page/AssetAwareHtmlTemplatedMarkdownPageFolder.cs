@@ -80,15 +80,6 @@ namespace WindowsAppCommunity.Blog.Page
                 // Pass through other items (template assets)
                 yield return item;
             }
-
-            // Yield markdown-referenced assets that were decided for inclusion
-            if (assetAwareFile != null && (type == StorableType.All || type == StorableType.File))
-            {
-                foreach (var includedAsset in assetAwareFile.IncludedAssets)
-                {
-                    yield return (IStorableChild)includedAsset;
-                }
-            }
         }
     }
 }

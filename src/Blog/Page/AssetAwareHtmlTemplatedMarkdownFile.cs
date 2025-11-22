@@ -15,7 +15,9 @@ namespace WindowsAppCommunity.Blog.Page
     /// </summary>
     public sealed class AssetAwareHtmlTemplatedMarkdownFile : HtmlTemplatedMarkdownFile
     {
-        private readonly List<IFile> _includedAssets = new();
+        private readonly List<ReferencedAsset> _includedAssets = new();
+        private readonly IStorable _templateSource;
+        private readonly string? _templateFileName;
 
         /// <summary>
         /// Creates asset-aware virtual HTML file with lazy markdown→HTML generation and asset management.
@@ -33,6 +35,8 @@ namespace WindowsAppCommunity.Blog.Page
             IFolder? parent = null)
             : base(id, markdownSource, templateSource, templateFileName, parent)
         {
+            _templateSource = templateSource;
+            _templateFileName = templateFileName;
         }
 
         /// <summary>
@@ -51,14 +55,15 @@ namespace WindowsAppCommunity.Blog.Page
         public required IAssetInclusionStrategy InclusionStrategy { get; init; }
 
         /// <summary>
-        /// Assets that were decided for inclusion (self-contained in page folder).
-        /// Exposed to containing folder for yielding in virtual structure.
+        /// All assets referenced by the markdown file (both included and referenced).
+        /// Exposed to containing folder for materialization to output.
         /// </summary>
-        public IReadOnlyCollection<IFile> IncludedAssets => _includedAssets.AsReadOnly();
+        public IReadOnlyCollection<ReferencedAsset> IncludedAssets => _includedAssets.AsReadOnly();
 
         /// <summary>
         /// Post-process HTML with asset management pipeline.
         /// Detects links → Resolves to files → Decides include/reference via path rewriting → Tracks included assets.
+        /// Detects links from BOTH markdown source AND template file to unify asset handling.
         /// </summary>
         /// <param name="html">Rendered HTML from template</param>
         /// <param name="model">Data model used for rendering</param>
@@ -69,41 +74,54 @@ namespace WindowsAppCommunity.Blog.Page
             // Clear included assets from any previous generation
             _includedAssets.Clear();
 
-            // Detect asset links in rendered HTML output (pass self as IFile)
-            await foreach (var originalPath in LinkDetector.DetectAsync(this, ct))
+            // Detect asset links from markdown source (content-referenced assets)
+            await foreach (var originalPath in LinkDetector.DetectAsync(MarkdownSource, ct))
             {
-                // Resolve path to IFile
-                var resolvedAsset = await Resolver.ResolveAsync(originalPath, ct);
-
-                // Null resolver policy: Skip if not found (preserve broken link)
-                if (resolvedAsset == null)
-                {
-                    continue;
-                }
-
-                // Strategy decides include vs reference by returning rewritten path
-                // Path structure determines behavior:
-                // - Child path (no ../ prefix): Include
-                // - Parent path (../ prefix): Reference
-                var rewrittenPath = await InclusionStrategy.DecideAsync(
-                    MarkdownSource,  // Pass original markdown source (not virtual HTML)
-                    resolvedAsset,
-                    originalPath,
-                    ct);
-
-                // Implicit decision based on path structure
-                if (!rewrittenPath.StartsWith("../"))
-                {
-                    // Include: Add to tracked assets (will be yielded by containing folder)
-                    _includedAssets.Add(resolvedAsset);
-                }
-                // Reference: Asset not added to included list (stays external)
-
-                // Rewrite link in HTML (applies to both Include and Reference)
-                html = html.Replace(originalPath, rewrittenPath);
+                html = await ProcessAssetLinkAsync(html, MarkdownSource, originalPath, ct);
             }
 
             return html;
+        }
+
+        /// <summary>
+        /// Process a single detected asset link through the asset pipeline.
+        /// Shared logic for both markdown and template asset detection.
+        /// </summary>
+        /// <param name="html">HTML content to update</param>
+        /// <param name="contextFile">File providing resolution context (markdown or template)</param>
+        /// <param name="originalPath">Original asset path as detected</param>
+        /// <param name="ct">Cancellation token</param>
+        /// <returns>Updated HTML with rewritten link</returns>
+        private async Task<string> ProcessAssetLinkAsync(
+            string html, 
+            IFile contextFile, 
+            string originalPath, 
+            CancellationToken ct)
+        {
+            // Resolve path to IFile (pass context file for resolution)
+            var resolvedAsset = await Resolver.ResolveAsync(contextFile, originalPath, ct);
+
+            // Null resolver policy: Skip if not found (preserve broken link)
+            if (resolvedAsset == null)
+            {
+                return html;
+            }
+
+            // Strategy decides include vs reference by returning rewritten path
+            // Path structure determines behavior:
+            // - Child path (no ../ prefix): Include
+            // - Parent path (../ prefix): Reference
+            var rewrittenPath = await InclusionStrategy.DecideAsync(
+                contextFile,
+                resolvedAsset,
+                originalPath,
+                ct);
+
+            // Track all referenced assets for materialization
+            _includedAssets.Add(new ReferencedAsset(originalPath, rewrittenPath, resolvedAsset));
+
+            // Rewrite link in HTML (strategy determines path prefix)
+            return html.Replace(originalPath, rewrittenPath);
         }
     }
 }

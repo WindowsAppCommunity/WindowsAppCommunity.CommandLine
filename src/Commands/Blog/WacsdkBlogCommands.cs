@@ -19,8 +19,8 @@ namespace WindowsAppCommunity.CommandLine.Blog
             // Register Post/Page scenario
             AddCommand(new PostPageCommand());
             
-            // Future: Register Pages scenario
-            // AddCommand(new PagesCommand());
+            // Register Pages scenario
+            AddCommand(new PagesCommand());
             
             // Future: Register Site scenario
             // AddCommand(new SiteCommand());

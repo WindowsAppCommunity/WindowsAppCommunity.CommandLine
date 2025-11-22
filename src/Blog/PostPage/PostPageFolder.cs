@@ -94,8 +94,7 @@ namespace WindowsAppCommunity.Blog.PostPage
 
             // Replace invalid filename characters with underscore
             var invalidChars = Path.GetInvalidFileNameChars();
-            var sanitized = string.Concat(nameWithoutExtension.Select(c => 
-                invalidChars.Contains(c) ? '_' : c));
+            var sanitized = string.Concat(nameWithoutExtension.Select(c => invalidChars.Contains(c) ? '_' : c));
 
             return sanitized;
         }
@@ -124,16 +123,13 @@ namespace WindowsAppCommunity.Blog.PostPage
 
                 if (templateFile is not IFile resolvedFile)
                 {
-                    throw new FileNotFoundException(
-                        $"Template file '{fileName}' not found in folder '{folder.Name}'.");
+                    throw new FileNotFoundException($"Template file '{fileName}' not found in folder '{folder.Name}'.");
                 }
 
                 return resolvedFile;
             }
 
-            throw new ArgumentException(
-                $"Template source must be IFile or IFolder, got: {templateSource.GetType().Name}",
-                nameof(templateSource));
+            throw new ArgumentException($"Template source must be IFile or IFolder, got: {templateSource.GetType().Name}", nameof(templateSource));
         }
     }
 }

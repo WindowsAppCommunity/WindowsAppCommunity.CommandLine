@@ -16,7 +16,7 @@ namespace WindowsAppCommunity.Blog.Pages
     /// Asset-aware only variant (no non-asset-aware needed for multi-page scenario).
     /// Implements lazy generation - no file system operations during construction.
     /// </summary>
-    public class AssetAwareHtmlTemplatedMarkdownPagesFolder : IFolder
+    public class AssetAwareHtmlTemplatedMarkdownPagesFolder : IChildFolder
     {
         private readonly IFolder _markdownSourceFolder;
         private readonly IStorable _templateSource;
@@ -82,10 +82,7 @@ namespace WindowsAppCommunity.Blog.Pages
                 {
                     if (type == StorableType.All || type == StorableType.Folder)
                     {
-                        var pageFolder = new AssetAwareHtmlTemplatedMarkdownPageFolder(
-                            file,
-                            _templateSource,
-                            _templateFileName)
+                        var pageFolder = new AssetAwareHtmlTemplatedMarkdownPageFolder(file, _templateSource, _templateFileName)
                         {
                             LinkDetector = LinkDetector,
                             Resolver = Resolver,
@@ -93,7 +90,7 @@ namespace WindowsAppCommunity.Blog.Pages
                             Parent = this
                         };
 
-                        yield return (IStorableChild)pageFolder;
+                        yield return pageFolder;
                     }
                 }
 
@@ -102,10 +99,7 @@ namespace WindowsAppCommunity.Blog.Pages
                 {
                     if (type == StorableType.All || type == StorableType.Folder)
                     {
-                        var nestedPagesFolder = new AssetAwareHtmlTemplatedMarkdownPagesFolder(
-                            subfolder,
-                            _templateSource,
-                            _templateFileName)
+                        var nestedPagesFolder = new AssetAwareHtmlTemplatedMarkdownPagesFolder(subfolder, _templateSource, _templateFileName)
                         {
                             LinkDetector = LinkDetector,
                             Resolver = Resolver,
@@ -113,7 +107,7 @@ namespace WindowsAppCommunity.Blog.Pages
                             Parent = this
                         };
 
-                        yield return (IStorableChild)nestedPagesFolder;
+                        yield return nestedPagesFolder;
                     }
                 }
             }
