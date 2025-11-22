@@ -93,10 +93,7 @@ title: Page 2
             "index.html")
         {
             LinkDetector = new RegexAssetLinkDetector(),
-            Resolver = new RelativePathAssetResolver
-            {
-                SourceFolder = _testSourceFolder
-            },
+            Resolver = new RelativePathAssetResolver(),
             InclusionStrategy = new ReferenceOnlyInclusionStrategy()
         };
     }
@@ -163,10 +160,7 @@ title: Page 2
     [TestMethod]
     public async Task AssetPathResolution_ResolvesValidPaths()
     {
-        var resolver = new RelativePathAssetResolver
-        {
-            SourceFolder = _testSourceFolder
-        };
+        var resolver = new RelativePathAssetResolver();
 
         var resolvedAsset = await resolver.ResolveAsync(_page1File, "images/logo.png");
 

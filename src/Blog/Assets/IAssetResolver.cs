@@ -8,11 +8,6 @@ namespace WindowsAppCommunity.Blog.Assets;
 public interface IAssetResolver
 {
     /// <summary>
-    /// Root folder for relative path resolution.
-    /// </summary>
-    IFolder SourceFolder { get; init; }
-
-    /// <summary>
     /// Resolves a relative path string to an IFile instance.
     /// </summary>
     /// <param name="markdownSource">Markdown file for relative path context (varies per page).</param>

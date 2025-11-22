@@ -10,9 +10,6 @@ namespace WindowsAppCommunity.Blog.Assets;
 public sealed class RelativePathAssetResolver : IAssetResolver
 {
     /// <inheritdoc/>
-    public required IFolder SourceFolder { get; init; }
-
-    /// <inheritdoc/>
     public async Task<IFile?> ResolveAsync(IFile markdownSource, string relativePath, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(relativePath))

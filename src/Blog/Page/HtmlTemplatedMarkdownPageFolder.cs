@@ -72,9 +72,10 @@ namespace WindowsAppCommunity.Blog.Page
             StorableType type = StorableType.All,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            // Yield HtmlTemplatedMarkdownFile (virtual HTML file) only
-            // Template assets are NOT yielded here - they're detected as links in the template HTML
-            // and tracked in the HTML file's IncludedAssets collection for consumer materialization
+            // Resolve template file for exclusion and HtmlTemplatedMarkdownFile construction
+            var templateFile = await ResolveTemplateFileAsync(_templateSource, _templateFileName);
+
+            // Yield HtmlTemplatedMarkdownFile (virtual HTML file)
             if (type == StorableType.All || type == StorableType.File)
             {
                 var indexHtmlId = $"{Id}/index.html";
@@ -82,6 +83,32 @@ namespace WindowsAppCommunity.Blog.Page
                 {
                     Name = "index.html"
                 };
+            }
+
+            // If template is folder, yield wrapped asset structure
+            if (_templateSource is IFolder templateFolder)
+            {
+                await foreach (var item in templateFolder.GetItemsAsync(StorableType.All, cancellationToken))
+                {
+                    // Wrap subfolders as PostPageAssetFolder
+                    if (item is IFolder subfolder && (type == StorableType.All || type == StorableType.Folder))
+                    {
+                        yield return new PostPageAssetFolder(subfolder, this, templateFile);
+                        continue;
+                    }
+
+                    // Pass through files directly (excluding template HTML file)
+                    if (item is IChildFile file && (type == StorableType.All || type == StorableType.File))
+                    {
+                        // Exclude template HTML file (already rendered as index.html)
+                        if (file.Id == templateFile.Id)
+                        {
+                            continue;
+                        }
+
+                        yield return file;
+                    }
+                }
             }
         }
 
