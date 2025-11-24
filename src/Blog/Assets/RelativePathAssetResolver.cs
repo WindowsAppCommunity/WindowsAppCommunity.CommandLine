@@ -10,7 +10,7 @@ namespace WindowsAppCommunity.Blog.Assets;
 public sealed class RelativePathAssetResolver : IAssetResolver
 {
     /// <inheritdoc/>
-    public async Task<IFile?> ResolveAsync(IFile markdownSource, string relativePath, CancellationToken ct = default)
+    public async Task<IFile?> ResolveAsync(IFile sourceFile, string relativePath, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
             return null;
@@ -20,9 +20,9 @@ public sealed class RelativePathAssetResolver : IAssetResolver
             // Normalize path separators to forward slash
             var normalizedPath = relativePath.Replace('\\', '/');
 
-            // Resolve relative to markdown file's location (pre-folderization)
+            // Resolve relative to markdown file's containing location (pre-folderization)
             // The markdown file itself is the base for relative path resolution
-            var item = await markdownSource.GetItemByRelativePathAsync(normalizedPath, ct);
+            var item = await sourceFile.GetItemByRelativePathAsync($"../{normalizedPath}", ct);
 
             // Return only if it's a file
             return item as IFile;

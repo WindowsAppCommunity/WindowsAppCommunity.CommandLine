@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using OwlCore.Extensions;
 using OwlCore.Storage;
 using WindowsAppCommunity.Blog.Assets;
 using WindowsAppCommunity.Blog.Page;
@@ -52,7 +53,7 @@ namespace WindowsAppCommunity.Blog.Pages
         /// <summary>
         /// Inclusion strategy for deciding include vs reference per asset.
         /// </summary>
-        public required IAssetInclusionStrategy InclusionStrategy { get; init; }
+        public required IAssetStrategy AssetStrategy { get; init; }
 
         /// <inheritdoc />
         public string Id => _markdownSourceFolder.Id;
@@ -84,9 +85,10 @@ namespace WindowsAppCommunity.Blog.Pages
                     {
                         var pageFolder = new AssetAwareHtmlTemplatedMarkdownPageFolder(file, _templateSource, _templateFileName)
                         {
+                            Id = $"{Id}-{file.Name}".HashMD5Fast(),
                             LinkDetector = LinkDetector,
                             Resolver = Resolver,
-                            InclusionStrategy = InclusionStrategy,
+                            AssetStrategy = AssetStrategy,
                             Parent = this
                         };
 
@@ -103,7 +105,7 @@ namespace WindowsAppCommunity.Blog.Pages
                         {
                             LinkDetector = LinkDetector,
                             Resolver = Resolver,
-                            InclusionStrategy = InclusionStrategy,
+                            AssetStrategy = AssetStrategy,
                             Parent = this
                         };
 

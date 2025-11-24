@@ -9,9 +9,5 @@ namespace WindowsAppCommunity.Blog.Assets
     /// <param name="OriginalPath">Path detected in markdown (relative to source file)</param>
     /// <param name="RewrittenPath">Path after inclusion strategy applied (include vs reference)</param>
     /// <param name="ResolvedFile">Actual file instance for copy operations</param>
-    public record ReferencedAsset(
-        string OriginalPath,
-        string RewrittenPath,
-        IFile ResolvedFile
-    );
+    public record PageAsset(string OriginalPath, string RewrittenPath, IFile ResolvedFile);
 }

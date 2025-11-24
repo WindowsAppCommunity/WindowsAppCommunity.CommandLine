@@ -1,12 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
+using OwlCore.Extensions;
 using OwlCore.Storage;
-using WindowsAppCommunity.Blog.PostPage;
 
 namespace WindowsAppCommunity.Blog.Page
 {
@@ -51,7 +45,7 @@ namespace WindowsAppCommunity.Blog.Page
         protected string? TemplateFileName => _templateFileName;
 
         /// <inheritdoc />
-        public string Id => _markdownSource.Id;
+        public required string Id { get; init; }
 
         /// <inheritdoc />
         public string Name => SanitizeFilename(_markdownSource.Name);
@@ -68,47 +62,16 @@ namespace WindowsAppCommunity.Blog.Page
         }
 
         /// <inheritdoc />
-        public virtual async IAsyncEnumerable<IStorableChild> GetItemsAsync(
-            StorableType type = StorableType.All,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public virtual async IAsyncEnumerable<IStorableChild> GetItemsAsync(StorableType type = StorableType.All, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            // Resolve template file for exclusion and HtmlTemplatedMarkdownFile construction
-            var templateFile = await ResolveTemplateFileAsync(_templateSource, _templateFileName);
-
             // Yield HtmlTemplatedMarkdownFile (virtual HTML file)
             if (type == StorableType.All || type == StorableType.File)
             {
-                var indexHtmlId = $"{Id}/index.html";
+                var indexHtmlId = $"{$"{Id}-index.html".HashMD5Fast()}";
                 yield return new HtmlTemplatedMarkdownFile(indexHtmlId, _markdownSource, _templateSource, _templateFileName, this)
                 {
                     Name = "index.html"
                 };
-            }
-
-            // If template is folder, yield wrapped asset structure
-            if (_templateSource is IFolder templateFolder)
-            {
-                await foreach (var item in templateFolder.GetItemsAsync(StorableType.All, cancellationToken))
-                {
-                    // Wrap subfolders as PostPageAssetFolder
-                    if (item is IFolder subfolder && (type == StorableType.All || type == StorableType.Folder))
-                    {
-                        yield return new PostPageAssetFolder(subfolder, this, templateFile);
-                        continue;
-                    }
-
-                    // Pass through files directly (excluding template HTML file)
-                    if (item is IChildFile file && (type == StorableType.All || type == StorableType.File))
-                    {
-                        // Exclude template HTML file (already rendered as index.html)
-                        if (file.Id == templateFile.Id)
-                        {
-                            continue;
-                        }
-
-                        yield return file;
-                    }
-                }
             }
         }
 
@@ -125,43 +88,10 @@ namespace WindowsAppCommunity.Blog.Page
 
             // Replace invalid filename characters with underscore
             var invalidChars = Path.GetInvalidFileNameChars();
-            var sanitized = string.Concat(nameWithoutExtension.Select(c => 
+            var sanitized = string.Concat(nameWithoutExtension.Select(c =>
                 invalidChars.Contains(c) ? '_' : c));
 
             return sanitized;
-        }
-
-        /// <summary>
-        /// Resolve template file from IStorable source.
-        /// Handles both IFile (single template) and IFolder (template + assets).
-        /// Uses convention-based lookup ("template.html") when source is folder.
-        /// </summary>
-        /// <param name="templateSource">Template as IFile or IFolder</param>
-        /// <param name="templateFileName">File name when source is IFolder (defaults to "template.html")</param>
-        /// <returns>Resolved template IFile</returns>
-        private async Task<IFile> ResolveTemplateFileAsync(
-            IStorable templateSource,
-            string? templateFileName)
-        {
-            if (templateSource is IFile file)
-            {
-                return file;
-            }
-
-            if (templateSource is IFolder folder)
-            {
-                var fileName = templateFileName ?? "template.html";
-                var templateFile = await folder.GetFirstByNameAsync(fileName);
-
-                if (templateFile is not IFile resolvedFile)
-                {
-                    throw new FileNotFoundException($"Template file '{fileName}' not found in folder '{folder.Name}'.");
-                }
-
-                return resolvedFile;
-            }
-
-            throw new ArgumentException($"Template source must be IFile or IFolder, got: {templateSource.GetType().Name}", nameof(templateSource));
         }
     }
 }

@@ -86,11 +86,19 @@ namespace WindowsAppCommunity.CommandLine.Blog.PostPage
 
             // Create recursive markdown-to-webpage folder (lazy generation - no I/O during construction)
             // Turns `.md` files into folders with an `index.html` holding asset metadata for output copy
+            HashSet<string> templateFileIds = [.. (templateSource is IFile file) ? [file.Id] : await new DepthFirstRecursiveFolder((IFolder)templateSource).GetFilesAsync().Select(x => x.Id).ToListAsync()];
+            HashSet<string> markdownSourceFileIds = [.. await new DepthFirstRecursiveFolder(markdownSourceFolder).GetFilesAsync().Select(x => x.Id).ToListAsync()];
             var pagesFolder = new AssetAwareHtmlTemplatedMarkdownPagesFolder(markdownSourceFolder, templateSource, templateFileName)
             {
                 LinkDetector = new RegexAssetLinkDetector(),
                 Resolver = new RelativePathAssetResolver(),
-                InclusionStrategy = new ReferenceOnlyInclusionStrategy()
+                AssetStrategy = new KnownAssetStrategy()
+                {
+                    IncludedAssetFileIds = templateFileIds,
+                    ReferencedAssetFileIds = markdownSourceFileIds,
+                    UnknownAssetFaultStrategy = FaultStrategy.LogWarn,
+                    UnknownAssetFallbackStrategy = AssetFallbackBehavior.Drop,
+                },
             };
 
             // Materialize virtual folderized markdown pages, then files within each markdown page folder.
@@ -98,22 +106,24 @@ namespace WindowsAppCommunity.CommandLine.Blog.PostPage
             {
                 // Get path to markdown page folder (mirrors original source file without extension)
                 var relativePathToPagesPageFolder = await pagesFolder.GetRelativePathToAsync(pageFolder);
-                var pageOutputFolder = await outputFolder.CreateFoldersAlongRelativePathAsync(relativePathToPagesPageFolder, overwrite: true).LastAsync();
+                var pageOutputFolder = (IModifiableFolder)await outputFolder.CreateFoldersAlongRelativePathAsync(relativePathToPagesPageFolder, overwrite: false).LastAsync();
 
                 // Iterate/copy files within markdown page folder
                 await foreach (AssetAwareHtmlTemplatedMarkdownFile indexFile in pageFolder.GetItemsAsync(StorableType.File))
                 {
-                    // Get relative path from page folder (not pagesFolder root)
-                    string pageFolderFileRelativePath = await pageFolder.GetRelativePathToAsync(indexFile);
-
                     // Create folders relative to THIS page's output folder, then copy
-                    var containingFolder = (IModifiableFolder)await pageOutputFolder.CreateFoldersAlongRelativePathAsync(pageFolderFileRelativePath, overwrite: false).LastAsync();
-                    var copiedIndexFile = await containingFolder.CreateCopyOfAsync(indexFile, overwrite: true);
+                    var copiedIndexFile = await pageOutputFolder.CreateCopyOfAsync(indexFile, overwrite: true);
 
                     // Copy all assets referenced in index.html to the rewritten asset path
-                    foreach (var asset in indexFile.IncludedAssets)
+                    // Logger.LogInformation($"Included: {indexFile.Assets.Count}");
+                    foreach (var asset in indexFile.Assets)
                     {
-                        var assetOutputFolder = (IModifiableFolder)await copiedIndexFile.CreateFoldersAlongRelativePathAsync(asset.RewrittenPath, overwrite: false).LastAsync();
+                        if (Path.GetExtension(asset.ResolvedFile.Name) == ".md")
+                        {
+                            // 
+                        }
+
+                        var assetOutputFolder = (IModifiableFolder)await pageOutputFolder.CreateFoldersAlongRelativePathAsync(asset.RewrittenPath, overwrite: false).LastAsync();
                         await assetOutputFolder.CreateCopyOfAsync(asset.ResolvedFile, overwrite: true);
                     }
                 }

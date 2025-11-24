@@ -1,15 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Markdig;
 using OwlCore.Storage;
 using Scriban;
 using YamlDotNet.Serialization;
-using WindowsAppCommunity.Blog.PostPage;
+using WindowsAppCommunity.Blog.Page;
 
 namespace WindowsAppCommunity.Blog.Page
 {
@@ -68,7 +62,7 @@ namespace WindowsAppCommunity.Blog.Page
         /// Source markdown file being transformed.
         /// Exposed for derived class access (e.g., passing to asset strategies).
         /// </summary>
-        protected IFile MarkdownSource => _markdownSource;
+        public IFile MarkdownSource => _markdownSource;
 
         /// <inheritdoc />
         public Task<IFolder?> GetParentAsync(CancellationToken cancellationToken = default)
@@ -87,12 +81,12 @@ namespace WindowsAppCommunity.Blog.Page
 
             // Lazy generation: Transform markdown→HTML on every call (no caching)
             var html = await GenerateHtmlAsync(cancellationToken);
-            
+
             // Convert HTML string to UTF-8 byte stream
             var bytes = Encoding.UTF8.GetBytes(html);
             var stream = new MemoryStream(bytes);
             stream.Position = 0;
-            
+
             return stream;
         }
 
@@ -115,7 +109,7 @@ namespace WindowsAppCommunity.Blog.Page
             var templateFile = await ResolveTemplateFileAsync(_templateSource, _templateFileName);
 
             // Create data model for template
-            var model = new PostPageDataModel
+            var model = new HtmlMarkdownDataTemplateModel
             {
                 Body = htmlBody,
                 Frontmatter = frontmatterDict,
@@ -125,15 +119,8 @@ namespace WindowsAppCommunity.Blog.Page
             };
 
             // Render template with model
-            var html = await RenderTemplateAsync(templateFile, model);
-
-            // Post-process HTML (extensibility point for derived classes)
-            html = await PostProcessHtmlAsync(html, model, cancellationToken);
-
-            return html;
+            return await RenderTemplateAsync(templateFile, model, cancellationToken);
         }
-
-        #region Protected Virtual Hooks
 
         /// <summary>
         /// Extract YAML front-matter block from markdown file.
@@ -145,7 +132,7 @@ namespace WindowsAppCommunity.Blog.Page
         protected virtual async Task<(string frontmatter, string content)> ParseMarkdownAsync(IFile file)
         {
             var text = await file.ReadTextAsync();
-            
+
             // Check for front-matter delimiters
             if (!text.StartsWith("---"))
             {
@@ -156,7 +143,7 @@ namespace WindowsAppCommunity.Blog.Page
             // Find the closing delimiter
             var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
             var closingDelimiterIndex = -1;
-            
+
             for (int i = 1; i < lines.Length; i++)
             {
                 if (lines[i].Trim() == "---")
@@ -237,9 +224,7 @@ namespace WindowsAppCommunity.Blog.Page
         /// <param name="templateSource">Template as IFile or IFolder</param>
         /// <param name="templateFileName">File name when source is IFolder (defaults to "template.html")</param>
         /// <returns>Resolved template IFile</returns>
-        protected virtual async Task<IFile> ResolveTemplateFileAsync(
-            IStorable templateSource,
-            string? templateFileName)
+        protected virtual async Task<IFile> ResolveTemplateFileAsync(IStorable templateSource, string? templateFileName)
         {
             if (templateSource is IFile file)
             {
@@ -272,13 +257,11 @@ namespace WindowsAppCommunity.Blog.Page
         /// </summary>
         /// <param name="templateFile">Scriban template file</param>
         /// <param name="model">PostPageDataModel with body, frontmatter, metadata</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the ongoing operation.</param>
         /// <returns>Rendered HTML string</returns>
-        protected virtual async Task<string> RenderTemplateAsync(
-            IFile templateFile,
-            PostPageDataModel model)
+        protected virtual async Task<string> RenderTemplateAsync(IFile templateFile, HtmlMarkdownDataTemplateModel model, CancellationToken cancellationToken)
         {
             var templateContent = await templateFile.ReadTextAsync();
-
             var template = Template.Parse(templateContent);
 
             if (template.HasErrors)
@@ -287,26 +270,7 @@ namespace WindowsAppCommunity.Blog.Page
                 throw new InvalidOperationException($"Template parsing failed:{Environment.NewLine}{errors}");
             }
 
-            var html = template.Render(model);
-
-            return html;
+            return template.Render(model);
         }
-
-        /// <summary>
-        /// Post-process rendered HTML (extensibility point for derived classes).
-        /// Base implementation is pass-through - no modifications.
-        /// Derived classes can override to perform link rewriting, asset detection, etc.
-        /// </summary>
-        /// <param name="html">Rendered HTML from template</param>
-        /// <param name="model">Data model used for rendering</param>
-        /// <param name="ct">Cancellation token</param>
-        /// <returns>Post-processed HTML string</returns>
-        protected virtual Task<string> PostProcessHtmlAsync(string html, PostPageDataModel model, CancellationToken ct)
-        {
-            // Base implementation: pass-through (no post-processing)
-            return Task.FromResult(html);
-        }
-
-        #endregion
     }
 }

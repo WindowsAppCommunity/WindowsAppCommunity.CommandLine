@@ -94,7 +94,7 @@ title: Page 2
         {
             LinkDetector = new RegexAssetLinkDetector(),
             Resolver = new RelativePathAssetResolver(),
-            InclusionStrategy = new ReferenceOnlyInclusionStrategy()
+            AssetStrategy = new ReferenceOnlyAssetStrategy()
         };
     }
 
@@ -174,9 +174,9 @@ title: Page 2
     }
 
     [TestMethod]
-    public async Task InclusionStrategy_AppliesReferenceDecisions()
+    public async Task AssetStrategy_AppliesReferenceDecisions()
     {
-        var strategy = new ReferenceOnlyInclusionStrategy();
+        var strategy = new ReferenceOnlyAssetStrategy();
         Assert.IsNotNull(_page1File, "page1.md should exist");
         Assert.IsNotNull(_logoFile, "logo.png should exist");
 
