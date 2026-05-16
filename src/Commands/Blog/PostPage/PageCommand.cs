@@ -88,24 +88,31 @@ public class PageCommand : Command
         // Resolve output folder (SystemFolder throws if doesn't exist)
         IModifiableFolder outputFolder = new SystemFolder(outputPath);
 
+        var templateFileIds = await PageAssetMaterializer.GetFileIdsAsync(templateSource);
+
         // Create virtual PostPageFolder (lazy generation - no I/O during construction)
         var postPageFolder = new AssetAwareHtmlTemplatedMarkdownPageFolder(markdownFile, templateSource, templateFileName)
         {
             Id = markdownFile.Id.HashMD5Fast(),
-            // Single-file page output includes assets by default
-            // Unlike multi-page output which references assets by default
-            AssetStrategy = new KnownAssetStrategy(),
+            AssetStrategy = new KnownAssetStrategy
+            {
+                IncludedAssetFileIds = templateFileIds,
+                ReferencedAssetFileIds = [markdownFile.Id],
+                UnknownAssetFallbackStrategy = AssetFallbackBehavior.Reference,
+                UnknownAssetFaultStrategy = FaultStrategy.None,
+            },
             Resolver = new RelativePathAssetResolver(),
             LinkDetector = new RegexAssetLinkDetector(),
         };
 
         // Create output folder for this page
-        var pageOutputFolder = await outputFolder.CreateFolderAsync(postPageFolder.Name, overwrite: true);
+        var pageOutputFolder = (IModifiableFolder)await outputFolder.CreateFolderAsync(postPageFolder.Name, overwrite: true);
 
         // Materialize virtual structure by recursively copying all files
-        await foreach (AssetAwareHtmlTemplatedMarkdownFile file in new DepthFirstRecursiveFolder(postPageFolder).GetFilesAsync())
+        await foreach (AssetAwareHtmlTemplatedMarkdownFile file in postPageFolder.GetItemsAsync(StorableType.File))
         {
-            // TODO, see https://discord.com/channels/372137812037730304/1396673230013464636/1441902694196449505
+            await pageOutputFolder.CreateCopyOfAsync(file, overwrite: true);
+            await PageAssetMaterializer.CopyAssetsAsync(pageOutputFolder, file.Assets);
         }
 
         var outputFolderName = Path.GetFileNameWithoutExtension(markdownFile.Name);

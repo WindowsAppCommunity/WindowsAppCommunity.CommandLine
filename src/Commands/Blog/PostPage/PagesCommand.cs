@@ -86,8 +86,8 @@ namespace WindowsAppCommunity.CommandLine.Blog.PostPage
 
             // Create recursive markdown-to-webpage folder (lazy generation - no I/O during construction)
             // Turns `.md` files into folders with an `index.html` holding asset metadata for output copy
-            HashSet<string> templateFileIds = [.. (templateSource is IFile file) ? [file.Id] : await new DepthFirstRecursiveFolder((IFolder)templateSource).GetFilesAsync().Select(x => x.Id).ToListAsync()];
-            HashSet<string> markdownSourceFileIds = [.. await new DepthFirstRecursiveFolder(markdownSourceFolder).GetFilesAsync().Select(x => x.Id).ToListAsync()];
+            var templateFileIds = await PageAssetMaterializer.GetFileIdsAsync(templateSource);
+            var markdownSourceFileIds = await PageAssetMaterializer.GetFileIdsAsync(markdownSourceFolder);
             var pagesFolder = new AssetAwareHtmlTemplatedMarkdownPagesFolder(markdownSourceFolder, templateSource, templateFileName)
             {
                 LinkDetector = new RegexAssetLinkDetector(),
@@ -112,20 +112,8 @@ namespace WindowsAppCommunity.CommandLine.Blog.PostPage
                 await foreach (AssetAwareHtmlTemplatedMarkdownFile indexFile in pageFolder.GetItemsAsync(StorableType.File))
                 {
                     // Create folders relative to THIS page's output folder, then copy
-                    var copiedIndexFile = await pageOutputFolder.CreateCopyOfAsync(indexFile, overwrite: true);
-
-                    // Copy all assets referenced in index.html to the rewritten asset path
-                    // Logger.LogInformation($"Included: {indexFile.Assets.Count}");
-                    foreach (var asset in indexFile.Assets)
-                    {
-                        if (Path.GetExtension(asset.ResolvedFile.Name) == ".md")
-                        {
-                            // 
-                        }
-
-                        var assetOutputFolder = (IModifiableFolder)await pageOutputFolder.CreateFoldersAlongRelativePathAsync(asset.RewrittenPath, overwrite: false).LastAsync();
-                        await assetOutputFolder.CreateCopyOfAsync(asset.ResolvedFile, overwrite: true);
-                    }
+                    await pageOutputFolder.CreateCopyOfAsync(indexFile, overwrite: true);
+                    await PageAssetMaterializer.CopyAssetsAsync(pageOutputFolder, indexFile.Assets);
                 }
             }
 

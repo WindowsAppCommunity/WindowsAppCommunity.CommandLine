@@ -24,6 +24,15 @@ public class AssetAwareHtmlTemplatedMarkdownPagesFolderTests
     private IFile _page2File = null!;
     private IFile _logoFile = null!;
 
+    private static KnownAssetStrategy CreateReferenceOnlyStrategy()
+    {
+        return new KnownAssetStrategy
+        {
+            UnknownAssetFallbackStrategy = AssetFallbackBehavior.Reference,
+            UnknownAssetFaultStrategy = FaultStrategy.None,
+        };
+    }
+
     [TestInitialize]
     public async Task Setup()
     {
@@ -94,7 +103,7 @@ title: Page 2
         {
             LinkDetector = new RegexAssetLinkDetector(),
             Resolver = new RelativePathAssetResolver(),
-            AssetStrategy = new ReferenceOnlyAssetStrategy()
+            AssetStrategy = CreateReferenceOnlyStrategy()
         };
     }
 
@@ -176,12 +185,13 @@ title: Page 2
     [TestMethod]
     public async Task AssetStrategy_AppliesReferenceDecisions()
     {
-        var strategy = new ReferenceOnlyAssetStrategy();
+        var strategy = CreateReferenceOnlyStrategy();
         Assert.IsNotNull(_page1File, "page1.md should exist");
         Assert.IsNotNull(_logoFile, "logo.png should exist");
 
         var rewrittenPath = await strategy.DecideAsync(_page1File, _logoFile, "../images/logo.png");
 
+        Assert.IsNotNull(rewrittenPath, "Reference-only strategy should return a rewritten path");
         Assert.IsTrue(rewrittenPath.StartsWith("../"), "Reference-only strategy should return path with ../ prefix");
         Assert.IsTrue(rewrittenPath.Contains("images/logo.png"), "Rewritten path should preserve original structure");
     }
