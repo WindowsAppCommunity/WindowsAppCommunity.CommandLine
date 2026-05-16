@@ -48,7 +48,21 @@ namespace WindowsAppCommunity.Blog.Page
         public required string Id { get; init; }
 
         /// <inheritdoc />
-        public string Name => SanitizeFilename(_markdownSource.Name);
+        public string Name => GetPageFolderName(_markdownSource.Name);
+
+        /// <summary>
+        /// Gets the folder name used for a folderized markdown page.
+        /// </summary>
+        /// <param name="markdownFilename">Original markdown filename with extension.</param>
+        /// <returns>Sanitized folder name without the markdown file extension.</returns>
+        public static string GetPageFolderName(string markdownFilename)
+        {
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(markdownFilename);
+            var invalidChars = Path.GetInvalidFileNameChars();
+
+            return string.Concat(nameWithoutExtension.Select(c =>
+                invalidChars.Contains(c) ? '_' : c));
+        }
 
         /// <summary>
         /// Optional parent folder in virtual hierarchy.
@@ -81,17 +95,5 @@ namespace WindowsAppCommunity.Blog.Page
         /// </summary>
         /// <param name="markdownFilename">Original markdown filename with extension</param>
         /// <returns>Sanitized folder name</returns>
-        private string SanitizeFilename(string markdownFilename)
-        {
-            // Remove file extension
-            var nameWithoutExtension = Path.GetFileNameWithoutExtension(markdownFilename);
-
-            // Replace invalid filename characters with underscore
-            var invalidChars = Path.GetInvalidFileNameChars();
-            var sanitized = string.Concat(nameWithoutExtension.Select(c =>
-                invalidChars.Contains(c) ? '_' : c));
-
-            return sanitized;
-        }
     }
 }

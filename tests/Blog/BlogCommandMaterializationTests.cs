@@ -89,6 +89,51 @@ public class BlogCommandMaterializationTests
         }
     }
 
+    [TestMethod]
+    public async Task PagesCommand_RewritesInRootMarkdownLinksToGeneratedPageRoutes()
+    {
+        var tempRoot = CreateTempRoot();
+
+        try
+        {
+            var sourceFolder = Path.Combine(tempRoot, "source");
+            var templateFolder = Path.Combine(tempRoot, "template");
+            var outputFolder = Path.Combine(tempRoot, "output");
+
+            Directory.CreateDirectory(Path.Combine(sourceFolder, "sub"));
+            Directory.CreateDirectory(templateFolder);
+            Directory.CreateDirectory(outputFolder);
+
+            await File.WriteAllTextAsync(Path.Combine(sourceFolder, "page1.md"), "---\ntitle: Page 1\n---\n\n[Page 2](page2.md)\n\n[Page 3](sub/page3.md)");
+            await File.WriteAllTextAsync(Path.Combine(sourceFolder, "page2.md"), "---\ntitle: Page 2\n---\n\n[Page 1](page1.md)");
+            await File.WriteAllTextAsync(Path.Combine(sourceFolder, "sub", "page3.md"), "---\ntitle: Page 3\n---\n\n[Page 1](../page1.md)");
+            await File.WriteAllTextAsync(Path.Combine(templateFolder, "template.html"), "<html><body>{{ body }}</body></html>");
+
+            var exitCode = await new PagesCommand().InvokeAsync([
+                "--markdown-folder", sourceFolder,
+                "--template", templateFolder,
+                "--output", outputFolder]);
+
+            var page1Html = await File.ReadAllTextAsync(Path.Combine(outputFolder, "page1", "index.html"));
+            var page2Html = await File.ReadAllTextAsync(Path.Combine(outputFolder, "page2", "index.html"));
+            var page3Html = await File.ReadAllTextAsync(Path.Combine(outputFolder, "sub", "page3", "index.html"));
+
+            Assert.AreEqual(0, exitCode);
+            StringAssert.Contains(page1Html, "href=\"../page2/\"");
+            StringAssert.Contains(page1Html, "href=\"../sub/page3/\"");
+            StringAssert.Contains(page2Html, "href=\"../page1/\"");
+            StringAssert.Contains(page3Html, "href=\"../../page1/\"");
+            Assert.IsFalse(page1Html.Contains(".md"), "Generated page1 HTML should not link to raw markdown files.");
+            Assert.IsFalse(page2Html.Contains(".md"), "Generated page2 HTML should not link to raw markdown files.");
+            Assert.IsFalse(page3Html.Contains(".md"), "Generated page3 HTML should not link to raw markdown files.");
+            Assert.AreEqual(0, Directory.GetFiles(outputFolder, "*.md", SearchOption.AllDirectories).Length, "Markdown source should not be copied into multi-page output.");
+        }
+        finally
+        {
+            DeleteTempRoot(tempRoot);
+        }
+    }
+
     private static string CreateTempRoot()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "wac-blog-tests", Guid.NewGuid().ToString("N"));

@@ -88,16 +88,23 @@ namespace WindowsAppCommunity.CommandLine.Blog.PostPage
             // Turns `.md` files into folders with an `index.html` holding asset metadata for output copy
             var templateFileIds = await PageAssetMaterializer.GetFileIdsAsync(templateSource);
             var markdownSourceFileIds = await PageAssetMaterializer.GetFileIdsAsync(markdownSourceFolder);
+            var markdownPageRouteIndex = await MarkdownPageRouteIndex.CreateAsync(markdownSourceFolder);
+            var fileAssetStrategy = new KnownAssetStrategy()
+            {
+                IncludedAssetFileIds = templateFileIds,
+                ReferencedAssetFileIds = markdownSourceFileIds,
+                UnknownAssetFaultStrategy = FaultStrategy.LogWarn,
+                UnknownAssetFallbackStrategy = AssetFallbackBehavior.Drop,
+            };
+
             var pagesFolder = new AssetAwareHtmlTemplatedMarkdownPagesFolder(markdownSourceFolder, templateSource, templateFileName)
             {
                 LinkDetector = new RegexAssetLinkDetector(),
                 Resolver = new RelativePathAssetResolver(),
-                AssetStrategy = new KnownAssetStrategy()
+                AssetStrategy = new MarkdownPageAssetStrategy
                 {
-                    IncludedAssetFileIds = templateFileIds,
-                    ReferencedAssetFileIds = markdownSourceFileIds,
-                    UnknownAssetFaultStrategy = FaultStrategy.LogWarn,
-                    UnknownAssetFallbackStrategy = AssetFallbackBehavior.Drop,
+                    RouteIndex = markdownPageRouteIndex,
+                    AssetStrategy = fileAssetStrategy,
                 },
             };
 
