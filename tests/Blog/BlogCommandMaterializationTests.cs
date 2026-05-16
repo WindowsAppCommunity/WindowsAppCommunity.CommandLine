@@ -179,6 +179,40 @@ public class BlogCommandMaterializationTests
         }
     }
 
+    [TestMethod]
+    public async Task PagesCommand_DoesNotAbortOnInvalidYamlFrontmatter()
+    {
+        var tempRoot = CreateTempRoot();
+
+        try
+        {
+            var sourceFolder = Path.Combine(tempRoot, "source");
+            var templateFolder = Path.Combine(tempRoot, "template");
+            var outputFolder = Path.Combine(tempRoot, "output");
+
+            Directory.CreateDirectory(sourceFolder);
+            Directory.CreateDirectory(templateFolder);
+            Directory.CreateDirectory(outputFolder);
+
+            await File.WriteAllTextAsync(Path.Combine(sourceFolder, "bad-yaml.md"), "---\ntitle: \"C:\\Projects\\Atlas\"\n---\n\n# Still renders");
+            await File.WriteAllTextAsync(Path.Combine(templateFolder, "template.html"), "<html><body>{{ body }}</body></html>");
+
+            var exitCode = await new PagesCommand().InvokeAsync([
+                "--markdown-folder", sourceFolder,
+                "--template", templateFolder,
+                "--output", outputFolder]);
+
+            var generatedHtml = await File.ReadAllTextAsync(Path.Combine(outputFolder, "bad-yaml", "index.html"));
+
+            Assert.AreEqual(0, exitCode);
+            StringAssert.Contains(generatedHtml, "Still renders");
+        }
+        finally
+        {
+            DeleteTempRoot(tempRoot);
+        }
+    }
+
     private static string CreateTempRoot()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "wac-blog-tests", Guid.NewGuid().ToString("N"));

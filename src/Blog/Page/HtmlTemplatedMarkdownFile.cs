@@ -212,7 +212,10 @@ namespace WindowsAppCommunity.Blog.Page
             }
             catch (YamlDotNet.Core.YamlException ex)
             {
-                throw new InvalidOperationException($"Failed to parse YAML front-matter: {ex.Message}", ex);
+                return new Dictionary<string, object>
+                {
+                    ["frontmatter_parse_error"] = ex.Message,
+                };
             }
         }
 
