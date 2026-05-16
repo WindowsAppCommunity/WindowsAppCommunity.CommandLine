@@ -89,11 +89,5 @@ namespace WindowsAppCommunity.Blog.Page
             }
         }
 
-        /// <summary>
-        /// Sanitize markdown filename for use as folder name.
-        /// Removes file extension and replaces invalid filename characters with underscore.
-        /// </summary>
-        /// <param name="markdownFilename">Original markdown filename with extension</param>
-        /// <returns>Sanitized folder name</returns>
     }
 }

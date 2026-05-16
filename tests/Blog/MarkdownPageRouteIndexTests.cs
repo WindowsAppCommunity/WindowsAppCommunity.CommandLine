@@ -60,9 +60,41 @@ public class MarkdownPageRouteIndexTests
         Assert.AreEqual("../images/logo.png", imageRoute);
     }
 
+    [TestMethod]
+    public async Task CreateAsync_WithDetectorAndResolver_IndexesLinkedMarkdownOutsideSourceRoot()
+    {
+        var notesRoot = new MemoryFolder("notes", "notes");
+        var sourcePage = await CreateFileAsync(notesRoot, "current/page1.md", "[Outside](../linked/outside.md)");
+        var outsidePage = await CreateFileAsync(notesRoot, "linked/outside.md", "[Page 1](../current/page1.md)");
+        var sourceFolder = await notesRoot.GetFirstByNameAsync("current") as IFolder
+            ?? throw new InvalidOperationException("Failed to get source folder");
+
+        var routeIndex = await MarkdownPageRouteIndex.CreateAsync(sourceFolder, new RegexAssetLinkDetector(), new RelativePathAssetResolver());
+
+        Assert.IsTrue(routeIndex.TryGetRoute(sourcePage, out var sourceRoute));
+        Assert.IsNotNull(sourceRoute);
+        Assert.AreEqual("page1", sourceRoute.PageFolderPath);
+
+        Assert.IsTrue(routeIndex.TryGetRoute(outsidePage, out var outsideRoute));
+        Assert.IsNotNull(outsideRoute);
+        StringAssert.StartsWith(outsideRoute.PageFolderPath, "_linked/");
+
+        Assert.IsTrue(routeIndex.TryGetRelativeRoute(sourcePage, outsidePage, out var relativeRoute));
+        Assert.IsNotNull(relativeRoute);
+        StringAssert.StartsWith(relativeRoute, "../_linked/");
+    }
+
     private static async Task<IFile> CreateFileAsync(MemoryFolder folder, string relativePath)
     {
-        return await folder.CreateAlongRelativePathAsync(relativePath, StorableType.File).LastAsync() as IFile
+        return await CreateFileAsync(folder, relativePath, string.Empty);
+    }
+
+    private static async Task<IFile> CreateFileAsync(MemoryFolder folder, string relativePath, string content)
+    {
+        var file = await folder.CreateAlongRelativePathAsync(relativePath, StorableType.File).LastAsync() as IFile
             ?? throw new InvalidOperationException($"Failed to create {relativePath}");
+
+        await file.WriteTextAsync(content);
+        return file;
     }
 }

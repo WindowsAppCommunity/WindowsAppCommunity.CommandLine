@@ -134,6 +134,51 @@ public class BlogCommandMaterializationTests
         }
     }
 
+    [TestMethod]
+    public async Task PagesCommand_IncludesLinkedMarkdownOutsideSourceRootRecursively()
+    {
+        var tempRoot = CreateTempRoot();
+
+        try
+        {
+            var sourceFolder = Path.Combine(tempRoot, "source");
+            var linkedFolder = Path.Combine(tempRoot, "linked");
+            var templateFolder = Path.Combine(tempRoot, "template");
+            var outputFolder = Path.Combine(tempRoot, "output");
+
+            Directory.CreateDirectory(sourceFolder);
+            Directory.CreateDirectory(linkedFolder);
+            Directory.CreateDirectory(templateFolder);
+            Directory.CreateDirectory(outputFolder);
+
+            await File.WriteAllTextAsync(Path.Combine(sourceFolder, "page1.md"), "---\ntitle: Page 1\n---\n\n[Outside](../linked/outside.md)");
+            await File.WriteAllTextAsync(Path.Combine(linkedFolder, "outside.md"), "---\ntitle: Outside\n---\n\n[Page 1](../source/page1.md)");
+            await File.WriteAllTextAsync(Path.Combine(templateFolder, "template.html"), "<html><body>{{ body }}</body></html>");
+
+            var exitCode = await new PagesCommand().InvokeAsync([
+                "--markdown-folder", sourceFolder,
+                "--template", templateFolder,
+                "--output", outputFolder]);
+
+            var page1Html = await File.ReadAllTextAsync(Path.Combine(outputFolder, "page1", "index.html"));
+            var linkedIndexFiles = Directory.GetFiles(Path.Combine(outputFolder, "_linked"), "index.html", SearchOption.AllDirectories);
+
+            Assert.AreEqual(0, exitCode);
+            Assert.AreEqual(1, linkedIndexFiles.Length, "The linked external markdown page should be included once.");
+            StringAssert.Contains(page1Html, "href=\"../_linked/");
+            Assert.IsFalse(page1Html.Contains(".md"), "Generated page1 HTML should not link to raw markdown files.");
+
+            var outsideHtml = await File.ReadAllTextAsync(linkedIndexFiles[0]);
+            StringAssert.Contains(outsideHtml, "href=\"../../page1/\"");
+            Assert.IsFalse(outsideHtml.Contains(".md"), "Generated external HTML should not link to raw markdown files.");
+            Assert.AreEqual(0, Directory.GetFiles(outputFolder, "*.md", SearchOption.AllDirectories).Length, "Markdown source should not be copied into multi-page output.");
+        }
+        finally
+        {
+            DeleteTempRoot(tempRoot);
+        }
+    }
+
     private static string CreateTempRoot()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "wac-blog-tests", Guid.NewGuid().ToString("N"));

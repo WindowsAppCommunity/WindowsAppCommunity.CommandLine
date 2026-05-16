@@ -1,5 +1,6 @@
-using System.Runtime.CompilerServices;
+using OwlCore.Extensions;
 using OwlCore.Storage;
+using WindowsAppCommunity.Blog.Assets;
 using WindowsAppCommunity.Blog.Page;
 
 namespace WindowsAppCommunity.Blog.Pages;
@@ -26,8 +27,24 @@ public sealed class MarkdownPageRouteIndex
     /// </summary>
     public static async Task<MarkdownPageRouteIndex> CreateAsync(IFolder markdownSourceFolder, CancellationToken cancellationToken = default)
     {
+        return await CreateAsync(markdownSourceFolder, null, null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates an index from the markdown source folder tree and recursively discovered markdown links.
+    /// </summary>
+    public static async Task<MarkdownPageRouteIndex> CreateAsync(
+        IFolder markdownSourceFolder,
+        IAssetLinkDetector? linkDetector,
+        IAssetResolver? resolver,
+        CancellationToken cancellationToken = default)
+    {
         var routesByFileId = new Dictionary<string, MarkdownPageRoute>();
-        await AddFolderRoutesAsync(markdownSourceFolder, string.Empty, routesByFileId, cancellationToken);
+        var pendingFiles = new Queue<IFile>();
+        await AddFolderRoutesAsync(markdownSourceFolder, string.Empty, routesByFileId, pendingFiles, cancellationToken);
+
+        if (linkDetector is not null && resolver is not null)
+            await AddLinkedMarkdownRoutesAsync(linkDetector, resolver, routesByFileId, pendingFiles, cancellationToken);
 
         return new MarkdownPageRouteIndex(routesByFileId);
     }
@@ -61,6 +78,7 @@ public sealed class MarkdownPageRouteIndex
         IFolder folder,
         string currentFolderPath,
         Dictionary<string, MarkdownPageRoute> routesByFileId,
+        Queue<IFile> pendingFiles,
         CancellationToken cancellationToken)
     {
         await foreach (var item in folder.GetItemsAsync(StorableType.All, cancellationToken).WithCancellation(cancellationToken))
@@ -69,15 +87,50 @@ public sealed class MarkdownPageRouteIndex
             {
                 var pageFolderName = HtmlTemplatedMarkdownPageFolder.GetPageFolderName(file.Name);
                 var pageFolderPath = CombineRoutePath(currentFolderPath, pageFolderName);
-                routesByFileId[file.Id] = new MarkdownPageRoute(file, pageFolderPath);
+                AddRoute(routesByFileId, pendingFiles, file, pageFolderPath);
             }
 
             if (item is IFolder subfolder)
             {
                 var nestedFolderPath = CombineRoutePath(currentFolderPath, subfolder.Name);
-                await AddFolderRoutesAsync(subfolder, nestedFolderPath, routesByFileId, cancellationToken);
+                await AddFolderRoutesAsync(subfolder, nestedFolderPath, routesByFileId, pendingFiles, cancellationToken);
             }
         }
+    }
+
+    private static async Task AddLinkedMarkdownRoutesAsync(
+        IAssetLinkDetector linkDetector,
+        IAssetResolver resolver,
+        Dictionary<string, MarkdownPageRoute> routesByFileId,
+        Queue<IFile> pendingFiles,
+        CancellationToken cancellationToken)
+    {
+        while (pendingFiles.Count > 0)
+        {
+            var currentFile = pendingFiles.Dequeue();
+
+            await foreach (var link in linkDetector.DetectAsync(currentFile, cancellationToken).WithCancellation(cancellationToken))
+            {
+                var resolvedFile = await resolver.ResolveAsync(currentFile, link, cancellationToken);
+                if (resolvedFile is null)
+                    continue;
+
+                if (!Path.GetExtension(resolvedFile.Name).Equals(".md", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (routesByFileId.ContainsKey(resolvedFile.Id))
+                    continue;
+
+                var externalRoutePath = CombineRoutePath("_linked", resolvedFile.Id.HashMD5Fast());
+                AddRoute(routesByFileId, pendingFiles, resolvedFile, externalRoutePath);
+            }
+        }
+    }
+
+    private static void AddRoute(Dictionary<string, MarkdownPageRoute> routesByFileId, Queue<IFile> pendingFiles, IFile file, string pageFolderPath)
+    {
+        routesByFileId[file.Id] = new MarkdownPageRoute(file, pageFolderPath);
+        pendingFiles.Enqueue(file);
     }
 
     private static string CombineRoutePath(string parentPath, string childName)

@@ -1,71 +1,81 @@
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using OwlCore.Diagnostics;
 using OwlCore.Storage;
 
 namespace WindowsAppCommunity.Blog.Assets;
 
 /// <summary>
-/// Detects relative asset links in rendered using path-pattern regex (no element parsing).
+/// Detects relative asset links in markdown and HTML text.
 /// </summary>
 public sealed partial class RegexAssetLinkDetector : IAssetLinkDetector
 {
     /// <summary>
-    /// Regex pattern for relative path segments: alphanumerics, underscore, hyphen, dot.
-    /// Matches paths with optional ./ or ../ prefixes and / or \ separators.
+    /// Regex pattern for markdown links and images.
     /// </summary>
-    [GeneratedRegex(@"(?:\.\.?/(?:[A-Za-z0-9_\-\.]+/)*[A-Za-z0-9_\-\.]+|[A-Za-z0-9_\-\.]+(?:/[A-Za-z0-9_\-\.]+)+)", RegexOptions.Compiled)]
-    private static partial Regex RelativePathPattern();
+    [GeneratedRegex("""!?\[[^\]]*\]\((?<path>[^)\s]+)(?:\s+[^)]*)?\)""", RegexOptions.Compiled)]
+    private static partial Regex MarkdownLinkPattern();
 
     /// <summary>
-    /// Regex pattern to detect protocol schemes (e.g., http://, custom://, drive://).
+    /// Regex pattern for HTML href/src attributes.
     /// </summary>
-    [GeneratedRegex(@"[A-Za-z][A-Za-z0-9+\-\.]*://", RegexOptions.Compiled)]
-    private static partial Regex ProtocolSchemePattern();
-
-    [GeneratedRegex(@"\b[A-Za-z0-9_\-]+\.[A-Za-z0-9]+\b", RegexOptions.Compiled)]
-    private static partial Regex FilenamePattern();
+    [GeneratedRegex("""(?:href|src)\s*=\s*["'](?<path>[^"']+)["']""", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex HtmlAttributePattern();
 
     /// <inheritdoc/>
     public async IAsyncEnumerable<string> DetectAsync(IFile source, [EnumeratorCancellation] CancellationToken ct = default)
     {
         var text = await source.ReadTextAsync(ct);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (Match match in RelativePathPattern().Matches(text))
+        foreach (Match match in MarkdownLinkPattern().Matches(text))
         {
             if (ct.IsCancellationRequested)
                 yield break;
 
-            var path = match.Value;
-
-            // Filter out non-relative patterns
-            if (string.IsNullOrWhiteSpace(path))
+            var path = match.Groups["path"].Value;
+            if (!ShouldYield(path, seen))
                 continue;
-
-            // Exclude absolute root paths (optional - treating these as non-relative)
-            if (path.StartsWith('/') || path.StartsWith('\\'))
-                continue;
-
-            // Check if this path is preceded by a protocol scheme (e.g., custom://path/to/file)
-            // Look back to see if there's a protocol before this match
-            var startIndex = match.Index;
-            if (startIndex > 0)
-            {
-                // Check up to 50 characters before the match for a protocol scheme
-                var lookbackLength = Math.Min(50, startIndex);
-                var precedingText = text.Substring(startIndex - lookbackLength, lookbackLength);
-
-                // If the preceding text ends with a protocol scheme (e.g., "custom://"), skip this match
-                if (ProtocolSchemePattern().IsMatch(precedingText) && precedingText.TrimEnd().EndsWith("://"))
-                    continue;
-            }
 
             yield return path;
         }
 
-        foreach (Match match in FilenamePattern().Matches(text))
+        foreach (Match match in HtmlAttributePattern().Matches(text))
         {
-            yield return match.Value;
+            if (ct.IsCancellationRequested)
+                yield break;
+
+            var path = match.Groups["path"].Value;
+            if (!ShouldYield(path, seen))
+                continue;
+
+            yield return path;
         }
+    }
+
+    private static bool ShouldYield(string path, HashSet<string> seen)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        path = path.Trim().Trim('<', '>');
+
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        if (path.StartsWith('#') || path.StartsWith('/') || path.StartsWith('\\'))
+            return false;
+        if (path.StartsWith("//", StringComparison.Ordinal))
+            return false;
+        if (path.Contains("://", StringComparison.Ordinal))
+            return false;
+        if (path.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("tel:", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return seen.Add(path);
     }
 }

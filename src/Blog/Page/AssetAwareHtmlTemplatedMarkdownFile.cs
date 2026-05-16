@@ -1,5 +1,6 @@
 using OwlCore.Diagnostics;
 using OwlCore.Storage;
+using System.Text.RegularExpressions;
 using WindowsAppCommunity.Blog.Assets;
 using WindowsAppCommunity.Blog.Page;
 
@@ -12,6 +13,8 @@ namespace WindowsAppCommunity.Blog.Page
     /// </summary>
     public sealed class AssetAwareHtmlTemplatedMarkdownFile : HtmlTemplatedMarkdownFile
     {
+        private static readonly Regex LinkAttributePattern = new("(?<attribute>href|src)\\s*=\\s*(?<quote>[\"'])(?<url>[^\"']+)(\\k<quote>)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private readonly List<PageAsset> _assets = new();
 
         /// <summary>
@@ -81,7 +84,7 @@ namespace WindowsAppCommunity.Blog.Page
                     continue;
 
                 _assets.Add(referencedAsset);
-                html = html.Replace(referencedAsset.OriginalPath, referencedAsset.RewrittenPath);
+                html = ReplaceLinkPath(html, referencedAsset.OriginalPath, referencedAsset.RewrittenPath);
             }
 
             return html;
@@ -114,6 +117,43 @@ namespace WindowsAppCommunity.Blog.Page
 
             // Track all referenced assets for materialization
             return new PageAsset(originalPath, rewrittenPath, resolvedAsset);
+        }
+
+        private static string ReplaceLinkPath(string html, string originalPath, string rewrittenPath)
+        {
+            return LinkAttributePattern.Replace(html, match =>
+            {
+                var url = match.Groups["url"].Value;
+                if (!PathsMatch(url, originalPath))
+                    return match.Value;
+
+                var attribute = match.Groups["attribute"].Value;
+                var quote = match.Groups["quote"].Value;
+                return $"{attribute}={quote}{rewrittenPath}{quote}";
+            });
+        }
+
+        private static bool PathsMatch(string renderedPath, string originalPath)
+        {
+            return string.Equals(NormalizeRenderedPath(renderedPath), NormalizeRenderedPath(originalPath), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeRenderedPath(string path)
+        {
+            var normalized = path.Trim().Trim('<', '>');
+
+            try
+            {
+                normalized = Uri.UnescapeDataString(normalized);
+            }
+            catch (UriFormatException)
+            {
+            }
+
+            normalized = normalized.Replace('\\', '/').Trim('`');
+            normalized = normalized.Replace("`", string.Empty);
+
+            return normalized;
         }
     }
 }
