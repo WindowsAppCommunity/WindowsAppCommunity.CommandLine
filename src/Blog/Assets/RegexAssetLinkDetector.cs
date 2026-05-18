@@ -16,9 +16,9 @@ public sealed partial class RegexAssetLinkDetector : IAssetLinkDetector
     private static partial Regex MarkdownLinkPattern();
 
     /// <summary>
-    /// Regex pattern for HTML href/src attributes.
+    /// Regex pattern for HTML href/src/content attributes.
     /// </summary>
-    [GeneratedRegex("""(?:href|src)\s*=\s*["'](?<path>[^"']+)["']""", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex("""(?:href|src|content)\s*=\s*["'](?<path>[^"']+)["']""", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex HtmlAttributePattern();
 
     /// <inheritdoc/>

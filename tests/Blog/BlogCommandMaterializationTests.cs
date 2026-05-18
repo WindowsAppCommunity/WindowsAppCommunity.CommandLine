@@ -22,9 +22,10 @@ public class BlogCommandMaterializationTests
             Directory.CreateDirectory(outputFolder);
 
             await File.WriteAllTextAsync(markdownPath, "---\ntitle: Test Post\n---\n\n# Hello");
-            await File.WriteAllTextAsync(Path.Combine(templateFolder, "template.html"), "<html><head><link rel=\"stylesheet\" href=\"styles.css\"></head><body><img src=\"images/logo.png\">{{ body }}</body></html>");
+            await File.WriteAllTextAsync(Path.Combine(templateFolder, "template.html"), "<html><head><link rel=\"stylesheet\" href=\"styles.css\"><meta property=\"og:image\" content=\"images/og-image.png\"></head><body><img src=\"images/logo.png\">{{ body }}</body></html>");
             await File.WriteAllTextAsync(Path.Combine(templateFolder, "styles.css"), "body { color: black; }");
             await File.WriteAllTextAsync(Path.Combine(templateFolder, "images", "logo.png"), "logo");
+            await File.WriteAllTextAsync(Path.Combine(templateFolder, "images", "og-image.png"), "og-image");
 
             var exitCode = await new PageCommand().InvokeAsync([
                 "--markdown", markdownPath,
@@ -36,8 +37,9 @@ public class BlogCommandMaterializationTests
             Assert.AreEqual(0, exitCode);
             Assert.IsTrue(File.Exists(Path.Combine(pageOutputFolder, "index.html")), "index.html should be generated.");
             Assert.IsTrue(File.Exists(Path.Combine(pageOutputFolder, "styles.css")), "styles.css should be copied as a file.");
-            Assert.IsFalse(Directory.Exists(Path.Combine(pageOutputFolder, "styles.css")), "styles.css must not be materialized as a folder.");
             Assert.IsTrue(File.Exists(Path.Combine(pageOutputFolder, "images", "logo.png")), "Nested template image should be copied.");
+            Assert.IsTrue(File.Exists(Path.Combine(pageOutputFolder, "images", "og-image.png")), "Template meta image should be copied.");
+            Assert.IsTrue(File.Exists(Path.Combine(templateFolder, "styles.css")), "Template source asset should remain in place.");
             Assert.IsTrue(File.Exists(Path.Combine(templateFolder, "styles.css")), "Template source asset should remain in place.");
             Assert.AreEqual(0, Directory.GetFiles(pageOutputFolder, "*.md", SearchOption.AllDirectories).Length, "Markdown source should not be copied into page output.");
         }
