@@ -1,7 +1,7 @@
 ﻿namespace WindowsAppCommunity.Sdk.PageGenerator.Models;
 
 /// <summary>
-/// A model representing a User entity with all async information fetched.
+/// A model representing a User entity with all remote information fetched.
 /// </summary>
 public record User
 {

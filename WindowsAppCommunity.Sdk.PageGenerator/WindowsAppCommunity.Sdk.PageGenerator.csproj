@@ -9,6 +9,7 @@
     <ItemGroup>
         <ProjectReference Include="..\sdk\src\WindowsAppCommunity.Sdk.csproj"/>
         <PackageReference Include="Markdig" Version="0.41.3"/>
+        <PackageReference Include="OwlCore.Storage" Version="0.14.0" />
         <PackageReference Include="Scriban" Version="6.2.1"/>
     </ItemGroup>
 

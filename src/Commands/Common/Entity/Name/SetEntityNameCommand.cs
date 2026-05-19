@@ -1,4 +1,5 @@
 using System.CommandLine;
+using CommunityToolkit.Diagnostics;
 using OwlCore.Diagnostics;
 using WindowsAppCommunity.Sdk;
 
@@ -27,6 +28,8 @@ public abstract class SetNameCommand : Command
 
     public async Task InvokeAsync(string repo, string id, string value)
     {
+        Guard.IsNotNull(value, nameof(value));
+        
         var cancellationToken = Config.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
 

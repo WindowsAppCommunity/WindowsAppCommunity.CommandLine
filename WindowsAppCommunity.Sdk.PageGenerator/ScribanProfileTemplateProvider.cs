@@ -13,6 +13,35 @@ namespace WindowsAppCommunity.Sdk.PageGenerator.Templating;
 public class ScribanProfileTemplateProvider<TEntity> : IProfileTemplateProvider<TEntity>
     where TEntity : IReadOnlyEntity
 {
+    private static readonly HashSet<string> _knownScribanExtensions = [
+        // From https://marketplace.visualstudio.com/items?itemName=xoofx.scriban
+        ".scriban",
+        ".sbn",
+
+        // Mixed scriban and HTML
+        ".scriban-html",
+        ".scriban-htm",
+        ".sbn-html",
+        ".sbn-htm",
+        ".sbnhtml",
+        ".sbnhtm",
+
+        // Mixed scriban and CSS
+        ".scriban-css",
+        ".sbn-css",
+        ".sbncss",
+
+        // Mixed scriban and text
+        ".scriban-txt",
+        ".sbn-txt",
+        ".sbntxt",
+
+        // Mixed scriban and C# files
+        ".scriban-cs",
+        ".sbn-cs",
+        ".sbncs"
+    ];
+    
     /// <summary>
     /// The name of the file to output to.
     /// </summary>
@@ -78,6 +107,30 @@ public class ScribanProfileTemplateProvider<TEntity> : IProfileTemplateProvider<
     {
         var templateText = await templateFile.ReadTextAsync(encoding, token);
         return Template.Parse(templateText);
+    }
+    
+    public async Task<IProfileTemplateProvider<TEntity>?> ScribanTemplateOverrideFactory(IFile file)
+    {
+        var fileExtension = Path.GetExtension(file.Name);
+        
+        // Use default template for unrecognized files
+        if (!_knownScribanExtensions.Contains(fileExtension))
+            return null;
+        
+        // Adjust the filename extension to appropriately reflect the
+        // transformed template
+        var transformedFileExtension = "";
+        if (fileExtension.Contains("htm"))
+            transformedFileExtension = ".html";
+        else if (fileExtension.Contains("txt"))
+            transformedFileExtension = ".txt";
+        else if (fileExtension.Contains("css"))
+            transformedFileExtension = ".css";
+        else if (fileExtension.Contains("cs"))
+            transformedFileExtension = ".cs";
+            
+        var transformedFileName = Path.GetFileNameWithoutExtension(file.Name) + transformedFileExtension;
+        return await CreateFromFileAsync(file, transformedFileName);
     }
 
     private static string DefaultMemberRenamer(MemberInfo member) => member.Name;
