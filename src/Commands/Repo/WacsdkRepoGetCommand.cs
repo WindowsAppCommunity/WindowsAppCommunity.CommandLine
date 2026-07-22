@@ -34,7 +34,7 @@ namespace WindowsAppCommunity.CommandLine.Repo
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task InvokeAsync(string id)
         {
-            var thisRepoStorage = (IModifiableFolder)await Config.RepositoryStorage.CreateFolderAsync(id, overwrite: false);
+            var thisRepoStorage = (IModifiableFolder)await Config.RepositoryStorage.GetFirstByNameAsync(id);
 
             Logger.LogInformation($"Getting repo store with ID {id} at {thisRepoStorage.GetType().Name} {thisRepoStorage.Id}");
             var repoSettings = new WacsdkNomadSettings(thisRepoStorage);
@@ -42,6 +42,10 @@ namespace WindowsAppCommunity.CommandLine.Repo
 
             var repositoryContainer = new RepositoryContainer(Config.KuboOptions, Config.Client, repoSettings.ManagedKeys, repoSettings.ManagedUserConfigs, repoSettings.ManagedProjectConfigs, repoSettings.ManagedPublisherConfigs);
 
+            // Why are we doing this here?
+            // - Isn't this a "Get" command? Why the extra logic? What's the intent?
+            // - Does it belong here? Or does it belong in a reusable helper? Does it even need to be reusable, or just isolated for clarity?
+            // - TODO: Assess and analyze intent and options
             var savedMissingFromRepoConfigs = repositoryContainer.PublisherRepository.ManagedConfigs.Where(x => repoSettings.ManagedPublisherConfigs.Any(y => x.RoamingId != y.RoamingId)).ToList();
             var repoMissingFromSavedConfigs = repoSettings.ManagedPublisherConfigs.Where(x => repositoryContainer.PublisherRepository.ManagedConfigs.Any(y => x.RoamingId != y.RoamingId)).ToList();   
 

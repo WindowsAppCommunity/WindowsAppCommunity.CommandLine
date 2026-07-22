@@ -1,23 +1,19 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Markdig;
 using OwlCore.Storage;
 using Scriban;
 using YamlDotNet.Serialization;
+using WindowsAppCommunity.Blog.Page;
 
-namespace WindowsAppCommunity.Blog.PostPage
+namespace WindowsAppCommunity.Blog.Page
 {
     /// <summary>
-    /// Virtual IChildFile representing index.html generated from markdown source.
+    /// Virtual IChildFile representing HTML generated from markdown source with template.
+    /// Base class - provides core markdown→HTML transformation pipeline with extensibility hooks.
     /// Implements lazy generation - markdown→HTML transformation occurs on OpenStreamAsync.
     /// Read-only - throws NotSupportedException for write operations.
     /// </summary>
-    public sealed class IndexHtmlFile : IChildFile
+    public class HtmlTemplatedMarkdownFile : IChildFile
     {
         private readonly string _id;
         private readonly IFile _markdownSource;
@@ -26,14 +22,14 @@ namespace WindowsAppCommunity.Blog.PostPage
         private readonly IFolder? _parent;
 
         /// <summary>
-        /// Creates virtual index.html file with lazy markdown→HTML generation.
+        /// Creates virtual HTML file with lazy markdown→HTML generation.
         /// </summary>
         /// <param name="id">Unique identifier for this file (parent-derived)</param>
         /// <param name="markdownSource">Source markdown file to transform</param>
         /// <param name="templateSource">Template as IFile or IFolder</param>
         /// <param name="templateFileName">Template file name when source is IFolder (defaults to "template.html")</param>
         /// <param name="parent">Parent folder in virtual hierarchy (optional)</param>
-        public IndexHtmlFile(string id, IFile markdownSource, IStorable templateSource, string? templateFileName, IFolder? parent = null)
+        public HtmlTemplatedMarkdownFile(string id, IFile markdownSource, IStorable templateSource, string? templateFileName = null, IFolder? parent = null)
         {
             _id = id ?? throw new ArgumentNullException(nameof(id));
             _markdownSource = markdownSource ?? throw new ArgumentNullException(nameof(markdownSource));
@@ -46,7 +42,11 @@ namespace WindowsAppCommunity.Blog.PostPage
         public string Id => _id;
 
         /// <inheritdoc />
-        public string Name => "index.html";
+        /// <remarks>
+        /// Required property - consumer must set via object initializer.
+        /// No default value provided (e.g., "index.html" is not assumed).
+        /// </remarks>
+        public required string Name { get; init; }
 
         /// <summary>
         /// File creation timestamp from filesystem metadata.
@@ -57,6 +57,12 @@ namespace WindowsAppCommunity.Blog.PostPage
         /// File modification timestamp from filesystem metadata.
         /// </summary>
         public DateTime? Modified { get; set; }
+
+        /// <summary>
+        /// Source markdown file being transformed.
+        /// Exposed for derived class access (e.g., passing to asset strategies).
+        /// </summary>
+        public IFile MarkdownSource => _markdownSource;
 
         /// <inheritdoc />
         public Task<IFolder?> GetParentAsync(CancellationToken cancellationToken = default)
@@ -70,23 +76,23 @@ namespace WindowsAppCommunity.Blog.PostPage
             // Read-only file - reject write operations
             if (accessMode == FileAccess.Write || accessMode == FileAccess.ReadWrite)
             {
-                throw new NotSupportedException($"IndexHtmlFile is read-only. Cannot open with access mode: {accessMode}");
+                throw new NotSupportedException($"{GetType().Name} is read-only. Cannot open with access mode: {accessMode}");
             }
 
             // Lazy generation: Transform markdown→HTML on every call (no caching)
             var html = await GenerateHtmlAsync(cancellationToken);
-            
+
             // Convert HTML string to UTF-8 byte stream
             var bytes = Encoding.UTF8.GetBytes(html);
             var stream = new MemoryStream(bytes);
             stream.Position = 0;
-            
+
             return stream;
         }
 
         /// <summary>
         /// Generate HTML by transforming markdown source with template.
-        /// Orchestrates: Parse markdown → Transform to HTML → Render template.
+        /// Orchestrates: Parse markdown → Transform to HTML → Render template → Post-process.
         /// </summary>
         private async Task<string> GenerateHtmlAsync(CancellationToken cancellationToken)
         {
@@ -103,7 +109,7 @@ namespace WindowsAppCommunity.Blog.PostPage
             var templateFile = await ResolveTemplateFileAsync(_templateSource, _templateFileName);
 
             // Create data model for template
-            var model = new PostPageDataModel
+            var model = new HtmlMarkdownDataTemplateModel
             {
                 Body = htmlBody,
                 Frontmatter = frontmatterDict,
@@ -113,12 +119,8 @@ namespace WindowsAppCommunity.Blog.PostPage
             };
 
             // Render template with model
-            var html = await RenderTemplateAsync(templateFile, model);
-
-            return html;
+            return await RenderTemplateAsync(templateFile, model, cancellationToken);
         }
-
-        #region Transformation Helpers
 
         /// <summary>
         /// Extract YAML front-matter block from markdown file.
@@ -127,10 +129,10 @@ namespace WindowsAppCommunity.Blog.PostPage
         /// </summary>
         /// <param name="file">Markdown file to parse</param>
         /// <returns>Tuple of (frontmatter YAML string, content markdown string)</returns>
-        private async Task<(string frontmatter, string content)> ParseMarkdownAsync(IFile file)
+        protected virtual async Task<(string frontmatter, string content)> ParseMarkdownAsync(IFile file)
         {
             var text = await file.ReadTextAsync();
-            
+
             // Check for front-matter delimiters
             if (!text.StartsWith("---"))
             {
@@ -138,10 +140,12 @@ namespace WindowsAppCommunity.Blog.PostPage
                 return (string.Empty, text);
             }
 
-            // Find the closing delimiter
-            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+            // Find the closing delimiter. Split on whole newline sequences so CRLF input
+            // doesn't create blank lines between every Markdown line.
+            var lines = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+
             var closingDelimiterIndex = -1;
-            
+
             for (int i = 1; i < lines.Length; i++)
             {
                 if (lines[i].Trim() == "---")
@@ -175,7 +179,7 @@ namespace WindowsAppCommunity.Blog.PostPage
         /// </summary>
         /// <param name="markdown">Markdown content string</param>
         /// <returns>HTML body content</returns>
-        private string TransformMarkdownToHtml(string markdown)
+        protected virtual string TransformMarkdownToHtml(string markdown)
         {
             var pipeline = new MarkdownPipelineBuilder()
                 .UseAdvancedExtensions()
@@ -185,6 +189,7 @@ namespace WindowsAppCommunity.Blog.PostPage
             return Markdown.ToHtml(markdown, pipeline);
         }
 
+
         /// <summary>
         /// Parse YAML front-matter string to arbitrary dictionary.
         /// No schema enforcement - accepts any valid YAML structure.
@@ -192,7 +197,7 @@ namespace WindowsAppCommunity.Blog.PostPage
         /// </summary>
         /// <param name="yaml">YAML string from front-matter</param>
         /// <returns>Dictionary with arbitrary keys and values</returns>
-        private Dictionary<string, object> ParseFrontmatter(string yaml)
+        protected virtual Dictionary<string, object> ParseFrontmatter(string yaml)
         {
             // Handle empty front-matter
             if (string.IsNullOrWhiteSpace(yaml))
@@ -210,7 +215,10 @@ namespace WindowsAppCommunity.Blog.PostPage
             }
             catch (YamlDotNet.Core.YamlException ex)
             {
-                throw new InvalidOperationException($"Failed to parse YAML front-matter: {ex.Message}", ex);
+                return new Dictionary<string, object>
+                {
+                    ["frontmatter_parse_error"] = ex.Message,
+                };
             }
         }
 
@@ -222,9 +230,7 @@ namespace WindowsAppCommunity.Blog.PostPage
         /// <param name="templateSource">Template as IFile or IFolder</param>
         /// <param name="templateFileName">File name when source is IFolder (defaults to "template.html")</param>
         /// <returns>Resolved template IFile</returns>
-        private async Task<IFile> ResolveTemplateFileAsync(
-            IStorable templateSource,
-            string? templateFileName)
+        protected virtual async Task<IFile> ResolveTemplateFileAsync(IStorable templateSource, string? templateFileName)
         {
             if (templateSource is IFile file)
             {
@@ -257,13 +263,11 @@ namespace WindowsAppCommunity.Blog.PostPage
         /// </summary>
         /// <param name="templateFile">Scriban template file</param>
         /// <param name="model">PostPageDataModel with body, frontmatter, metadata</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the ongoing operation.</param>
         /// <returns>Rendered HTML string</returns>
-        private async Task<string> RenderTemplateAsync(
-            IFile templateFile,
-            PostPageDataModel model)
+        protected virtual async Task<string> RenderTemplateAsync(IFile templateFile, HtmlMarkdownDataTemplateModel model, CancellationToken cancellationToken)
         {
             var templateContent = await templateFile.ReadTextAsync();
-
             var template = Template.Parse(templateContent);
 
             if (template.HasErrors)
@@ -272,11 +276,7 @@ namespace WindowsAppCommunity.Blog.PostPage
                 throw new InvalidOperationException($"Template parsing failed:{Environment.NewLine}{errors}");
             }
 
-            var html = template.Render(model);
-
-            return html;
+            return template.Render(model);
         }
-
-        #endregion
     }
 }

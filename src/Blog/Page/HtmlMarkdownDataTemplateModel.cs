@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-
-namespace WindowsAppCommunity.Blog.PostPage
+namespace WindowsAppCommunity.Blog.Page
 {
     /// <summary>
     /// Data model for Scriban template rendering in Post/Page scenario.
     /// Provides the data contract that templates can access via dot notation.
     /// </summary>
-    public class PostPageDataModel
+    public class HtmlMarkdownDataTemplateModel
     {
         /// <summary>
         /// Transformed HTML content from markdown body.
