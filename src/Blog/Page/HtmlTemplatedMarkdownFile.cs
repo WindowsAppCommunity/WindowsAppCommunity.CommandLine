@@ -140,8 +140,10 @@ namespace WindowsAppCommunity.Blog.Page
                 return (string.Empty, text);
             }
 
-            // Find the closing delimiter
-            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+            // Find the closing delimiter. Split on whole newline sequences so CRLF input
+            // doesn't create blank lines between every Markdown line.
+            var lines = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+
             var closingDelimiterIndex = -1;
 
             for (int i = 1; i < lines.Length; i++)
@@ -186,6 +188,7 @@ namespace WindowsAppCommunity.Blog.Page
 
             return Markdown.ToHtml(markdown, pipeline);
         }
+
 
         /// <summary>
         /// Parse YAML front-matter string to arbitrary dictionary.
